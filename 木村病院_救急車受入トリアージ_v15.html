@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>救急車受入 緊急度トリアージ｜木村病院 v15</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;background:#f0f4f8;color:#1a202c;padding:12px}
+.wrap{max-width:700px;margin:0 auto}
+.hdr{background:linear-gradient(135deg,#1a365d 0%,#2a4a7f 100%);color:#fff;border-radius:12px 12px 0 0;padding:14px 18px;display:flex;align-items:center;gap:12px}
+.hdr h1{font-size:15px;font-weight:700;flex:1;line-height:1.3}
+.hdr .tag{background:rgba(255,255,255,.18);padding:3px 10px;border-radius:20px;font-size:11px;white-space:nowrap}
+.card{background:#fff;border:1px solid #e2e8f0;border-top:none;padding:18px 20px}
+.prog-wrap{margin-bottom:16px}
+.prog-bar{background:#e2e8f0;height:5px;border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,#3182ce,#63b3ed);border-radius:3px;transition:width .3s ease}
+.prog-label{font-size:11px;color:#718096;margin-top:4px;text-align:right}
+.crumb{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin-bottom:14px;min-height:16px}
+.crumb-item{background:#edf2f7;color:#4a5568;padding:2px 8px;border-radius:10px;font-size:11px}
+.crumb-sep{color:#cbd5e0;font-size:11px}
+.step-lbl{font-size:11px;font-weight:700;color:#718096;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.step-lbl.final{color:#2c7a7b}
+.question{font-size:17px;font-weight:700;color:#1a202c;margin-bottom:5px;line-height:1.4}
+.q-sub{font-size:12px;color:#718096;margin-bottom:14px;line-height:1.5}
+.opts{display:flex;flex-direction:column;gap:7px;margin-top:4px}
+.opt{width:100%;text-align:left;padding:11px 14px;border:2px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;font-weight:500;transition:border-color .15s,background .15s;display:flex;align-items:center;gap:10px;line-height:1.4;touch-action:manipulation;-webkit-tap-highlight-color:transparent;min-height:48px}
+.opt:hover{border-color:#3182ce;background:#ebf8ff}
+.opt-icon{font-size:17px;flex-shrink:0;width:22px;text-align:center}
+.opt.sah{border-color:#fc8181;background:#fff5f5}
+.opt.sah:hover{border-color:#e53e3e;background:#fed7d7}
+.opt.cog{border-color:#b794f4;background:#faf5ff}
+.opt.cog:hover{border-color:#805ad5;background:#e9d8fd}
+.opt.dnar-yes{border-color:#48bb78;background:#f0fff4}
+.opt.dnar-yes:hover{border-color:#276749;background:#c6f6d5}
+.opt.cpa-no{border-color:#f6ad55;background:#fffaf0}
+.opt.cpa-no:hover{border-color:#dd6b20;background:#feebcb}
+.opt.kakari{border-color:#38b2ac;background:#e6fffa}
+.opt.kakari:hover{border-color:#2c7a7b;background:#b2f5ea}
+.opt.accept{border-color:#48bb78;background:#f0fff4}
+.opt.accept:hover{border-color:#276749;background:#c6f6d5}
+.opt.decline{border-color:#fc8181;background:#fff5f5}
+.opt.decline:hover{border-color:#e53e3e;background:#fed7d7}
+.opt.proceed{border-color:#3182ce;background:#ebf8ff}
+.opt.proceed:hover{border-color:#2b6cb0;background:#bee3f8}
+.panel-btn{width:100%;text-align:left;padding:7px 12px;background:#f7fafc;border:1px solid #e2e8f0;border-radius:6px;margin:10px 0 4px;cursor:pointer;font-size:12px;color:#4a5568;display:flex;align-items:center;gap:6px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;min-height:44px}
+.panel-btn:hover{background:#edf2f7}
+.panel-body{display:none;background:#f7fafc;border:1px solid #e2e8f0;border-radius:6px;padding:14px;margin-bottom:12px;font-size:12px;line-height:1.6}
+.panel-body.open{display:block}
+.phone-script{background:#1a365d;color:#fff;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:12px;line-height:1.6}
+.phone-script .label{font-size:10px;font-weight:700;opacity:.7;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.phone-script .phrase{font-size:13px;font-weight:600}
+.nrs-grid{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.nrs-row{display:flex;align-items:stretch;gap:0;border-radius:6px;overflow:hidden;border:1px solid #e2e8f0}
+.nrs-score{min-width:52px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0}
+.nrs-row.high .nrs-score{background:#fed7d7;color:#742a2a}
+.nrs-row.mid .nrs-score{background:#fefcbf;color:#744210}
+.nrs-row.low .nrs-score{background:#c6f6d5;color:#1c4532}
+.nrs-row.none .nrs-score{background:#edf2f7;color:#718096}
+.nrs-content{flex:1;padding:8px 12px;background:#fff}
+.nrs-level{font-size:12px;font-weight:700;margin-bottom:2px}
+.nrs-row.high .nrs-level{color:#742a2a}
+.nrs-row.mid .nrs-level{color:#744210}
+.nrs-row.low .nrs-level{color:#276749}
+.nrs-row.none .nrs-level{color:#718096}
+.nrs-desc{font-size:11px;color:#4a5568;line-height:1.5}
+.nonverbal-box{background:#faf5ff;border:1px solid #d6bcfa;border-radius:6px;padding:10px 12px}
+.nonverbal-box .nv-title{font-size:11px;font-weight:700;color:#44337a;margin-bottom:6px}
+.nv-items{display:flex;flex-wrap:wrap;gap:5px}
+.nv-tag{background:#e9d8fd;color:#44337a;border-radius:4px;padding:3px 8px;font-size:11px}
+.panel-body table{width:100%;border-collapse:collapse;margin-top:6px}
+.panel-body th,.panel-body td{padding:5px 9px;border:1px solid #e2e8f0;font-size:11px;text-align:left}
+.panel-body th{background:#edf2f7;font-weight:600}
+.result{border-radius:8px;padding:18px;border:2px solid}
+.result.red{border-color:#e53e3e;background:#fff5f5}
+.result.orange{border-color:#dd6b20;background:#fffaf0}
+.result.yellow{border-color:#b7791f;background:#fffff0}
+.result.green{border-color:#276749;background:#f0fff4}
+.result.blue{border-color:#2b6cb0;background:#ebf8ff}
+.result.teal{border-color:#2c7a7b;background:#e6fffa}
+.result.gray{border-color:#718096;background:#f7fafc}
+.rbadge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;color:#fff;margin-bottom:8px}
+.result.red .rbadge{background:#e53e3e}
+.result.orange .rbadge{background:#dd6b20}
+.result.yellow .rbadge{background:#b7791f}
+.result.green .rbadge{background:#276749}
+.result.blue .rbadge{background:#2b6cb0}
+.result.teal .rbadge{background:#2c7a7b}
+.result.gray .rbadge{background:#718096}
+.rlevel{font-size:19px;font-weight:800;margin-bottom:10px}
+.raction{font-size:13px;line-height:1.75;white-space:pre-line}
+.rnote{margin-top:12px;padding:10px 13px;border-radius:6px;font-size:12px;line-height:1.6;white-space:pre-line;background:#f7fafc;border-left:4px solid #a0aec0}
+.rnote.warn{background:#fffaf0;border-left-color:#ed8936;color:#7b341e}
+.rnote.alert{background:#fff5f5;border-left-color:#e53e3e;color:#742a2a}
+.rnote.cog{background:#faf5ff;border-left-color:#805ad5;color:#44337a}
+.rnote.ok{background:#f0fff4;border-left-color:#48bb78;color:#1c4532}
+.rnote.teal{background:#e6fffa;border-left-color:#38b2ac;color:#1d4044}
+.divider{border:none;border-top:2px dashed #e2e8f0;margin:16px 0}
+.capacity-header{font-size:11px;font-weight:700;color:#2c7a7b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.nav{display:flex;gap:8px;margin-top:16px}
+.btn-back{padding:9px 18px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:#edf2f7;color:#4a5568;touch-action:manipulation;-webkit-tap-highlight-color:transparent;min-height:44px}
+.btn-back:hover{background:#e2e8f0}
+.btn-reset{padding:9px 18px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;border:none;background:#1a365d;color:#fff;margin-left:auto;touch-action:manipulation;-webkit-tap-highlight-color:transparent;min-height:44px}
+.btn-reset:hover{background:#2a4a7f}
+.foot{background:#fff;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;padding:10px 18px;font-size:10px;color:#a0aec0;text-align:center;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hdr">
+    <span style="font-size:22px">🚑</span>
+    <h1>救急車受入 緊急度トリアージ<br><span style="font-weight:400;font-size:13px;opacity:.85">JTAS準拠 ステップ式確認ツール</span></h1>
+    <div class="tag">木村病院 外来用</div>
+  </div>
+  <div class="card">
+    <div class="prog-wrap">
+      <div class="prog-bar"><div class="prog-fill" id="pFill" style="width:0%"></div></div>
+      <div class="prog-label" id="pLabel"></div>
+    </div>
+    <div class="crumb" id="crumb"></div>
+    <div id="content"></div>
+    <div class="nav">
+      <button class="btn-back" id="btnBack" onclick="goBack()" style="display:none">← 戻る</button>
+      <button class="btn-reset" onclick="reset()">🔄 最初から</button>
+    </div>
+  </div>
+  <div class="foot">
+    ※本ツールは初期スクリーニングの補助ツールです。受入可否の最終判断は外来担当看護師が行ってください。<br>
+    JTAS（Japan Triage and Acuity Scale）準拠 ／ JATEC基準採用 ／ 木村病院 外来運用版（脳卒中B指定病院）
+  </div>
+</div>
+<script>
+const P={
+  vitals:{title:"📋 バイタルサイン 判定基準表",html:`
+    <table style="width:100%;border-collapse:collapse;font-size:11px">
+      <thead>
+        <tr>
+          <th style="padding:5px 8px;border:1px solid #e2e8f0;background:#edf2f7;text-align:left">項目</th>
+          <th style="padding:5px 8px;border:1px solid #e2e8f0;background:#fed7d7;color:#742a2a;text-align:center">🔴 重篤</th>
+          <th style="padding:5px 8px;border:1px solid #e2e8f0;background:#fefcbf;color:#744210;text-align:center">🟡 中等度</th>
+          <th style="padding:5px 8px;border:1px solid #e2e8f0;background:#c6f6d5;color:#1c4532;text-align:center">🟢 正常</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;font-weight:600">SpO₂</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#fff5f5;text-align:center;color:#742a2a;font-weight:700">&lt; 90%</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#fffff0;text-align:center;color:#744210;font-weight:700">90〜94%</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#f0fff4;text-align:center;color:#1c4532;font-weight:700">≥ 95%</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;font-weight:600">収縮期BP</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#fff5f5;text-align:center;color:#742a2a;font-weight:700">&lt;80 か &gt;200</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#fffff0;text-align:center;color:#744210;font-weight:700">&lt;90 か &gt;180</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#f0fff4;text-align:center;color:#1c4532;font-weight:700">90〜180</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;font-weight:600">HR（脈拍）</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#fff5f5;text-align:center;color:#742a2a;font-weight:700">&lt;40 か &gt;150</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#fffff0;text-align:center;color:#744210;font-weight:700">&lt;50 か &gt;120</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#f0fff4;text-align:center;color:#1c4532;font-weight:700">50〜120</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;font-weight:600">体温</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#fff5f5;text-align:center;color:#9b9b9b">—</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#fffff0;text-align:center;color:#744210;font-weight:700">&gt; 38.5℃</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#f0fff4;text-align:center;color:#1c4532;font-weight:700">≤ 38.5℃</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="margin-top:8px;font-size:11px;color:#718096">※いずれか1項目でも該当すれば上位レベルを選択してください。</div>
+  `},
+  trauma:{title:"📋 JATECによる高エネルギー外傷の定義",html:`<table>
+    <tr><th>受傷機転</th><th>基準値</th></tr>
+    <tr><td>高所転落（成人）</td><td>6.1 m 以上（約2階建て相当）</td></tr>
+    <tr><td>高所転落（小児）</td><td>3.05 m 以上（約1階相当）</td></tr>
+    <tr><td>車室内変形</td><td>45.7 cm 以上の変形（乗車スペースへの侵入）</td></tr>
+    <tr><td>歩行者への車両衝突</td><td>32.2 km/h 以上</td></tr>
+    <tr><td>バイクとの衝突</td><td>32.3 km/h 以上</td></tr>
+    <tr><td>その他</td><td>高速道路事故・車両転覆・同乗者死亡</td></tr>
+  </table>`},
+  nrs:{title:"📋 NRS 疼痛評価（電話での確認ガイド）",html:`
+    <div class="phone-script">
+      <div class="label">📞 救急隊への確認フレーズ（会話できる患者）</div>
+      <div class="phrase">「患者さんに、今の痛みを0から10の数字で表してもらえますか？　0が全く痛くない、10が想像できる最大の痛みです。」</div>
+    </div>
+    <div class="nrs-grid">
+      <div class="nrs-row high">
+        <div class="nrs-score">7〜10</div>
+        <div class="nrs-content">
+          <div class="nrs-level">強い痛み → NRS 7以上を選択</div>
+          <div class="nrs-desc">「痛くて動けない」「じっとしていないといられない」「涙が出る」など。会話が困難なほどの痛み。</div>
+        </div>
+      </div>
+      <div class="nrs-row mid">
+        <div class="nrs-score">4〜6</div>
+        <div class="nrs-content">
+          <div class="nrs-level">中等度の痛み → NRS 6以下を選択</div>
+          <div class="nrs-desc">「痛いが会話はできる」「じっとしていれば少し楽」など。日常動作には支障がある程度。</div>
+        </div>
+      </div>
+      <div class="nrs-row low">
+        <div class="nrs-score">1〜3</div>
+        <div class="nrs-content">
+          <div class="nrs-level">軽度の痛み → NRS 6以下を選択</div>
+          <div class="nrs-desc">「少し痛い程度」「気になるが普通に話せる」など。</div>
+        </div>
+      </div>
+      <div class="nrs-row none">
+        <div class="nrs-score">0</div>
+        <div class="nrs-content">
+          <div class="nrs-level">痛みなし</div>
+          <div class="nrs-desc">痛みの訴えなし。</div>
+        </div>
+      </div>
+    </div>
+    <div class="nonverbal-box">
+      <div class="nv-title">🔇 会話できない・認知症・乳幼児の場合　— 救急隊に観察を依頼する項目</div>
+      <div class="nv-items">
+        <span class="nv-tag">😣 しかめっ面・涙</span>
+        <span class="nv-tag">😤 うめき声・うなり声</span>
+        <span class="nv-tag">🤸 身をよじる・体が硬直している</span>
+        <span class="nv-tag">💓 脈が速い・血圧が上がっている</span>
+        <span class="nv-tag">🙅 触れると嫌がる・逃げる</span>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:#44337a">上記が複数みられる場合はNRS 7以上相当と判断してください。</div>
+    </div>
+  `}
+};
+
+const T={
+  /* ── Step 1: 意識レベル ── */
+  q1:{step:1,max:8,lbl:"① 意識レベル確認",q:"患者の意識レベルはどれですか？",
+    opts:[
+      {icon:"⚫",label:"JCS III（呼びかけに全く反応しない・深昏睡）",next:"q1_cardiac"},
+      {icon:"🟠",label:"JCS I–II（呼びかけに何らかの反応あり・意識混濁・混乱）",next:"q2"},
+      {icon:"🟣",label:"認知機能低下疑い（普段から認知症・せん妄傾向がある）",next:"q2_cog",cog:true},
+      {icon:"✅",label:"JCS 0（意識清明・受け答え良好）",next:"q3a"}
+    ]},
+  q1_cardiac:{step:2,max:3,lbl:"② 心肺停止（CPA）の確認",q:"心肺停止（CPA）の状態ですか？",
+    sub:"呼吸・脈拍の有無を救急隊に確認してください。",
+    opts:[
+      {icon:"🫀",label:"心肺停止あり（呼吸・脈拍なし）",next:"q1_dnar"},
+      {icon:"💓",label:"心肺停止なし（JCS IIIだが自己心拍・呼吸あり）",next:"q2",cpa_no:true}
+    ]},
+  q1_dnar:{step:3,max:3,lbl:"③ 蘇生意向・DNAR の確認",q:"蘇生処置に関する意向はどうですか？",
+    sub:"救急隊・家族・施設スタッフに確認してください。DNAR指示書の有無も確認してください。",
+    opts:[
+      {icon:"🕊️",label:"DNAR・看取り希望（蘇生不要・自然な経過を望む）",next:"res_accept_dnar",dnar:true},
+      {icon:"🔴",label:"蘇生希望あり（CPR希望・DNARなし）",next:"res_decline_cpa"}
+    ]},
+  /* ── Step 2-3: バイタル ── */
+  q2:{step:3,max:8,lbl:"③ バイタルサイン（意識障害あり）",q:"バイタルサインの状況はどれですか？",panel:"vitals",
+    opts:[
+      {icon:"🔴",label:"重篤な異常がある（表の赤に1項目以上該当）",next:"res_orange_vital"},
+      {icon:"🟡",label:"中等度以下の異常、または安定している",next:"q4_chief"}
+    ]},
+  q3a:{step:2,max:8,lbl:"② バイタルサイン（意識清明）",q:"バイタルサインの状況はどれですか？",panel:"vitals",
+    opts:[
+      {icon:"🔴",label:"重篤な異常がある（表の赤に1項目以上該当）",next:"res_orange_vital"},
+      {icon:"🟡",label:"中等度の異常がある（表の黄に1項目以上該当）",next:"res_yellow_vital"},
+      {icon:"🟢",label:"正常範囲内（すべて表の緑）",next:"q4_chief"}
+    ]},
+  q2_cog:{step:2,max:7,lbl:"② 認知機能低下患者 — 変化の確認",q:"今回の状態は普段（ベースライン）と比べてどうですか？",
+    sub:"慢性的な認知機能低下との区別が重要です。家族・施設スタッフに確認してください。",
+    opts:[
+      {label:"いつもより明らかに悪い（急性変化あり）",next:"q3b"},
+      {label:"普段通り・ベースラインと変わらない",next:"q2_cog_vital"}
+    ]},
+  q3b:{step:3,max:8,lbl:"③ バイタルサイン（急性変化あり）",q:"バイタルサインの状況はどれですか？",panel:"vitals",
+    opts:[
+      {icon:"🔴",label:"重篤な異常がある（表の赤に1項目以上該当）",next:"res_orange_vital"},
+      {icon:"🟡",label:"中等度以下の異常、または安定している",next:"q4_chief"}
+    ]},
+  q2_cog_vital:{step:3,max:7,lbl:"③ バイタルサイン（認知症・ベースライン）",q:"バイタルサインの状況はどれですか？",panel:"vitals",
+    opts:[
+      {icon:"🔴",label:"重篤な異常がある（表の赤に1項目以上該当）",next:"res_orange_vital"},
+      {icon:"🟡",label:"中等度以下の異常がある（表の黄・赤以外）",next:"q2_cog_chief_abn"},
+      {icon:"🟢",label:"正常範囲内（すべて表の緑）",next:"q2_cog_chief_norm"}
+    ]},
+  /* ── Step 4: 主訴 ── */
+  q2_cog_chief_abn:{step:4,max:7,lbl:"④ 主な症状・搬送理由（認知症・ベースライン）",q:"今回の搬送の主な理由はどれですか？",
+    sub:"バイタルサインに異常があります。",
+    opts:[
+      {icon:"🧠",label:"BPSD（興奮・徘徊・幻覚・不眠・問題行動など）",next:"res_cog_yellow"},
+      {icon:"🤕",label:"転倒・外傷",next:"q5_trauma"},
+      {icon:"💓",label:"胸痛・動悸・息苦しさ",next:"res_orange_chest"},
+      {icon:"🤢",label:"発熱・体調不良・その他",next:"res_yellow_other"}
+    ]},
+  q2_cog_chief_norm:{step:4,max:7,lbl:"④ 主な症状・搬送理由（認知症・ベースライン）",q:"今回の搬送の主な理由はどれですか？",
+    sub:"バイタルサインは正常範囲内です。",
+    opts:[
+      {icon:"🧠",label:"BPSD（興奮・徘徊・幻覚・不眠・問題行動など）",next:"res_cog_green"},
+      {icon:"🤕",label:"転倒・外傷",next:"q5_trauma"},
+      {icon:"💓",label:"胸痛・動悸・息苦しさ",next:"res_orange_chest"},
+      {icon:"🤢",label:"発熱・体調不良・その他",next:"res_green_other"}
+    ]},
+  q4_chief:{step:4,max:8,lbl:"④ 主訴確認",q:"最も緊急性が高い主訴・症状はどれですか？",
+    opts:[
+      {icon:"💓",label:"胸痛・動悸・失神・強い息苦しさ（ACS・PE・大動脈解離疑い）",next:"res_orange_chest"},
+      {icon:"🧠",label:"片側麻痺・言語障害・顔面麻痺（脳梗塞疑い）",next:"q5_stroke_time"},
+      {icon:"🤯",label:"急激な激しい頭痛・雷鳴頭痛（くも膜下出血疑い）",next:"res_orange_sah",sah:true},
+      {icon:"🤕",label:"外傷・骨折・受傷",next:"q5_trauma"},
+      {icon:"🤢",label:"腹痛・嘔吐・発熱・その他",next:"q5_other"}
+    ]},
+  /* ── Step 5-6: 各主訴詳細 ── */
+  q5_stroke_time:{step:5,max:8,lbl:"⑤ 脳梗塞疑い — 発症時刻の確認",q:"症状の発症（または最後に正常だった時刻）はいつですか？",
+    sub:"消防庁の定義：脳卒中A＝発症24時間以内 ／ 脳卒中B＝発症24時間以降",
+    opts:[
+      {icon:"🔴",label:"発症24時間以内（脳卒中A相当）",next:"q5_stroke_kakari"},
+      {icon:"🟢",label:"発症24時間以降（脳卒中B相当）— 当院指定",next:"res_orange_stroke_b"}
+    ]},
+  q5_stroke_kakari:{step:6,max:8,lbl:"⑥ かかりつけ患者の確認",q:"当院のかかりつけ患者ですか？",
+    sub:"脳卒中A（発症24時間以内）は原則として高次医療機関が対応します。\nかかりつけ患者の場合は当院で精査し、必要・希望があれば転送します。",
+    opts:[
+      {icon:"🏥",label:"かかりつけ患者（当院に受診歴あり）",next:"res_orange_stroke_a_kakari",kakari:true},
+      {icon:"❌",label:"かかりつけでない",next:"res_decline_stroke_a"}
+    ]},
+  q5_trauma:{step:5,max:8,lbl:"⑤ 外傷の程度",q:"外傷の状況はどれに当てはまりますか？",panel:"trauma",
+    opts:[
+      {label:"高エネルギー外傷（JATECの基準に該当）",next:"res_orange_trauma"},
+      {label:"中等度外傷（高エネルギーではないが出血・骨折あり）",next:"q5_trauma_pain"},
+      {label:"軽度外傷（打撲・擦傷のみ）",next:"q5_trauma_pain_mild"}
+    ]},
+  q5_trauma_pain:{step:6,max:8,lbl:"⑥ 疼痛評価（中等度外傷）",q:"痛みの強さ（NRS）はどのくらいですか？",panel:"nrs",
+    opts:[
+      {label:"NRS 7以上（強い痛み）",next:"res_yellow_trauma"},
+      {label:"NRS 6以下（中等度以下）",next:"res_green_trauma"}
+    ]},
+  q5_trauma_pain_mild:{step:6,max:8,lbl:"⑥ 疼痛評価（軽度外傷）",q:"痛みの強さ（NRS）はどのくらいですか？",panel:"nrs",
+    opts:[
+      {label:"NRS 4以上",next:"res_green_trauma"},
+      {label:"NRS 3以下",next:"res_blue_trauma"}
+    ]},
+  q5_other:{step:5,max:8,lbl:"⑤ 症状・バイタルの程度",q:"症状の程度・バイタルの状況はどうですか？",
+    opts:[
+      {label:"バイタル異常あり・症状が強い（高体温>39℃・腹部板状硬など）",next:"res_yellow_other"},
+      {label:"症状は中等度・バイタルは安定",next:"res_green_other"},
+      {label:"軽度・歩行可能・バイタル正常",next:"res_blue_other"}
+    ]},
+
+  /* ── JTAS判定結果（中間）→ 受入可否確認へ続く ── */
+  res_accept_dnar:{type:"result",color:"green",badge:"受入可",level:"✅ 受入可（DNAR・看取り）",
+    action:"DNAR・看取り目的での搬送として受け入れます。\n医師へ報告し、看取りの方針を確認してください。\n家族・施設スタッフと連携し、到着後の対応を準備してください。",
+    note:"📋 DNAR指示書・事前指示書の原本確認を必ず行ってください。\n口頭確認のみの場合は慎重に判断し、必要に応じて医師へ連絡してください。",noteType:"ok"},
+  res_decline_cpa:{type:"result",color:"gray",badge:"受入困難",level:"🚫 受入困難（心肺停止・蘇生希望あり）",
+    action:"心肺停止で蘇生処置（CPR）を希望される場合、当院では対応が困難です。\n蘇生対応が可能な医療機関への搬送をお願いしてください。\n救急隊へ丁寧にお断りし、他院の受入先確保を依頼してください。"},
+  res_decline_stroke_a:{type:"result",color:"gray",badge:"受入困難",level:"🚫 受入困難（脳卒中A・かかりつけ外）",
+    action:"脳卒中A（発症24時間以内）で当院かかりつけでない患者は、対応が困難です。\n脳卒中A対応の高次医療機関への搬送をお願いしてください。\n救急隊へ丁寧にお断りし、適切な搬送先の確保を依頼してください。",
+    note:"💡 緊急性が特に高い場合（急速増悪・意識障害）は看護師の判断で受入を検討し、必要に応じて医師に連絡してください。",noteType:"warn"},
+
+  /* L1/L2 → 医師対応確認へ */
+  res_orange_vital:{type:"result",color:"orange",badge:"JTAS 2",level:"🟠 レベル2（緊急）",
+    action:"バイタルサインに重篤な異常があります。15分以内に診療を開始してください。\n医師へ直ちに報告し、モニター装着・静脈ライン確保の準備をしてください。",
+    next:"chk_l12"},
+  res_yellow_vital:{type:"result",color:"yellow",badge:"JTAS 3",level:"🟡 レベル3（準緊急）",
+    action:"バイタルサインに中等度の異常があります。30分以内に診療を開始してください。\n到着後はモニタリングを継続し、悪化があれば即時L2対応に切り替えてください。",
+    next:"chk_l345"},
+  res_orange_chest:{type:"result",color:"orange",badge:"JTAS 2",level:"🟠 レベル2（緊急）",
+    action:"ACS・PE・大動脈解離等が疑われます。発症時刻にかかわらず緊急対応が必要です。\n15分以内に診療を開始してください。\n12誘導心電図・SpO₂モニター・静脈ライン確保の準備をしてください。医師へ直ちに報告してください。",
+    note:"⚠️ 以下の所見がある場合はL1（蘇生）相当として即時対応してください：\nショック状態（収縮期BP<80・冷汗・意識低下）／SpO₂急激な低下／心停止切迫",noteType:"alert",
+    next:"chk_l12"},
+  res_orange_stroke_b:{type:"result",color:"orange",badge:"JTAS 2",level:"🟠 レベル2（緊急）",
+    action:"脳卒中B（発症24時間以降）— 当院指定病院として応需します。\n神経症状の評価（意識・麻痺・言語・顔面対称性）を行い、頭部CT/MRIの手配をしてください。\n医師へ直ちに報告してください。15分以内に診療を開始してください。",
+    note:"🟢 当院は脳卒中B指定病院です。発症24時間以降の脳梗塞患者は原則応需してください。",noteType:"ok",
+    next:"chk_l12"},
+  res_orange_stroke_a_kakari:{type:"result",color:"teal",badge:"JTAS 2（条件付応需）",level:"🏥 受入可（脳卒中A・かかりつけ）",
+    action:"脳卒中A（発症24時間以内）ですが、かかりつけ患者のため応需します。\n当院で精査（頭部CT/MRI・神経学的評価）を行い、必要または希望があれば高次医療機関へ転送します。\n医師へ直ちに報告し、転送の要否を早期に判断してください。",
+    note:"📋 転送を検討する目安：血栓回収療法（機械的血栓除去）の適応がある場合・症状が急速に増悪する場合\n家族への説明と転送同意の確認を早めに行ってください。",noteType:"teal",
+    next:"chk_l12"},
+  res_orange_sah:{type:"result",color:"orange",badge:"JTAS 2",level:"🟠 レベル2（緊急）",
+    action:"くも膜下出血（SAH）が疑われます。即時対応が必要です。\n緊急CT頭部の手配が必要です。医師へ即座に報告してください。\n高次医療機関（脳卒中A対応）への転送が必要となる可能性があります。",
+    note:"💡 典型的な訴え：「人生最悪の頭痛」「突然バットで殴られたような頭痛」\n　発症は突然で、数秒〜数分でピークに達します。悪心・嘔吐・項部硬直を伴うことがあります。",noteType:"warn",
+    next:"chk_l12"},
+  res_orange_trauma:{type:"result",color:"orange",badge:"JTAS 2",level:"🟠 レベル2（緊急）",
+    action:"高エネルギー外傷です。全身評価（JATEC）が必要です。\n15分以内に診療を開始してください。医師に報告し、外科・整形外科の応援要請を検討してください。",
+    next:"chk_l12"},
+
+  /* L3/4/5 → ベッド確認へ */
+  res_yellow_trauma:{type:"result",color:"yellow",badge:"JTAS 3",level:"🟡 レベル3（準緊急）",
+    action:"中等度外傷・強い疼痛（NRS≥7）。30分以内に診療を開始してください。\n骨折・内臓損傷の有無を評価してください。",next:"chk_l345"},
+  res_green_trauma:{type:"result",color:"green",badge:"JTAS 4",level:"🟢 レベル4（低緊急）",
+    action:"軽〜中等度外傷・疼痛は中程度以下。60分以内に診療を開始してください。\nX線などで骨折の有無を確認してください。",next:"chk_l345"},
+  res_blue_trauma:{type:"result",color:"blue",badge:"JTAS 5",level:"🔵 レベル5（非緊急）",
+    action:"軽度外傷・疼痛軽微。通常の外来診療の流れで対応できます。",next:"chk_l345"},
+  res_yellow_other:{type:"result",color:"yellow",badge:"JTAS 3",level:"🟡 レベル3（準緊急）",
+    action:"症状が強い、またはバイタル異常があります。30分以内に診療を開始してください。\n医師に報告し、経過観察を続けてください。",next:"chk_l345"},
+  res_green_other:{type:"result",color:"green",badge:"JTAS 4",level:"🟢 レベル4（低緊急）",
+    action:"症状は中等度・バイタルは安定しています。60分以内に診療を開始してください。",next:"chk_l345"},
+  res_blue_other:{type:"result",color:"blue",badge:"JTAS 5",level:"🔵 レベル5（非緊急）",
+    action:"症状は軽度です。通常の外来診療の流れで対応できます。",next:"chk_l345"},
+  res_cog_yellow:{type:"result",color:"yellow",badge:"JTAS 3",level:"🟡 レベル3（準緊急）",
+    action:"BPSD（認知症の行動・心理症状）の可能性があります。バイタル異常も認めるため、30分以内に診療を開始してください。\n医師に報告し、身体的な原因疾患（感染症・疼痛・便秘など）の除外も行ってください。",
+    note:"💜 認知症患者は痛みや不快感を適切に表現できないことがあります。バイタルの変化・行動の変化に注意してください。",noteType:"cog",next:"chk_l345"},
+  res_cog_green:{type:"result",color:"green",badge:"JTAS 4",level:"🟢 レベル4（低緊急）",
+    action:"BPSD（認知症の行動・心理症状）の可能性があります。バイタルは正常範囲内です。\n60分以内に診療を開始してください。家族・施設スタッフからの情報収集が有用です。",
+    note:"💜 慢性的な認知機能低下（ベースライン）による症状と考えられます。身体的な原因疾患の除外も念のため確認してください。",noteType:"cog",next:"chk_l345"},
+
+  /* ── 受入可否確認フロー（新規追加） ── */
+  chk_l12:{step:7,max:8,lbl:"⑦ 最終確認 — 医師対応状況",isFinal:true,
+    q:"外来医師はすぐに対応できますか？",
+    sub:"レベル1・2（緊急）の受入には、外来医師またはセカンドコール医師の即時対応が必要です。",
+    opts:[
+      {icon:"✅",label:"外来医師がすぐ対応できる",next:"res_final_accept_l2",accept:true},
+      {icon:"📞",label:"外来医師は対応困難 → セカンドコールを確認する",next:"chk_l12_second"}
+    ]},
+  chk_l12_second:{step:8,max:8,lbl:"⑧ 最終確認 — セカンドコール医師",isFinal:true,
+    q:"セカンドコール医師はすぐに対応できますか？",
+    opts:[
+      {icon:"✅",label:"セカンドコール医師が対応できる",next:"res_final_accept_l2",accept:true},
+      {icon:"❌",label:"セカンドコール医師も対応困難",next:"res_final_decline_doc",decline:true}
+    ]},
+  chk_l345:{step:7,max:8,lbl:"⑦ 最終確認 — 処置ベッド",isFinal:true,
+    q:"処置ベッドに空きはありますか？",
+    sub:"レベル3〜5の受入には処置ベッドが＊床以上空いている必要があります。",
+    opts:[
+      {icon:"🛏️",label:"処置ベッドが＊床以上空いている",next:"res_final_accept_l345",accept:true},
+      {icon:"❌",label:"処置ベッドが満床（＊床未満）",next:"res_final_decline_bed",decline:true}
+    ]},
+
+  /* ── 最終結果 ── */
+  res_final_accept_l2:{type:"result",color:"orange",badge:"受入可（L1/L2）",level:"✅ 受入決定 — レベル1・2（緊急）",
+    action:"医師対応を確認しました。受け入れを開始してください。\n到着まで処置・モニタリングの準備を進めてください。\n救急隊に受入可の旨を伝え、到着予定時刻を確認してください。"},
+  res_final_accept_l345:{type:"result",color:"green",badge:"受入可",level:"✅ 受入決定",
+    action:"処置ベッドの空きを確認しました。受け入れを開始してください。\n救急隊に受入可の旨を伝え、到着予定時刻を確認してください。"},
+  res_final_decline_doc:{type:"result",color:"gray",badge:"受入困難",level:"🚫 受入困難 — 医師対応不可",
+    action:"現時点で外来医師・セカンドコール医師ともに対応困難です。\n救急隊へ丁寧にお断りし、対応可能な医療機関への転送をお願いしてください。",
+    note:"⚠️ 医師対応が回復次第、受入再開を検討してください。\n医師に状況を連絡し、看護師として対応を判断してください。",noteType:"warn"},
+  res_final_decline_bed:{type:"result",color:"gray",badge:"受入困難",level:"🚫 受入困難 — 処置ベッド満床",
+    action:"処置ベッドに空きがありません（＊床未満）。\n救急隊へ丁寧にお断りし、対応可能な医療機関への転送をお願いしてください。",
+    note:"⚠️ ベッドが空き次第、受入再開を検討してください。\n医師に状況を連絡し、看護師として対応を判断してください。",noteType:"warn"}
+};
+
+let hist=[],cur="q1";
+function togglePanel(id){
+  const el=document.getElementById("pb_"+id),btn=document.getElementById("pbtn_"+id);
+  if(!el)return;
+  el.classList.toggle("open");
+  if(btn)btn.innerHTML=(el.classList.contains("open")?"▲ 閉じる":"▼ 詳細を見る")+" &nbsp;"+P[id].title;
+}
+function goBack(){if(hist.length===0)return;cur=hist.pop();render()}
+function reset(){hist=[];cur="q1";render()}
+function nav(id){hist.push(cur);cur=id;render()}
+function render(){
+  const node=T[cur];
+  const content=document.getElementById("content");
+  const back=document.getElementById("btnBack");
+  const crumb=document.getElementById("crumb");
+  const pFill=document.getElementById("pFill");
+  const pLabel=document.getElementById("pLabel");
+  back.style.display=hist.length>0?"inline-block":"none";
+  if(hist.length>0){
+    crumb.innerHTML=hist.map(h=>{const n=T[h];return`<span class="crumb-item">${n?n.lbl:h}</span><span class="crumb-sep">›</span>`;}).join("")+
+      `<span class="crumb-item" style="background:#bee3f8;color:#2b6cb0">${node?node.lbl||cur:cur}</span>`;
+  }else{crumb.innerHTML="";}
+  if(!node){content.innerHTML="<p>エラー</p>";return;}
+
+  if(node.type==="result"){
+    if(node.next){
+      /* 中間結果：JTAS判定表示 + 受入可否確認ボタン */
+      const pct=Math.round((6/8)*100);
+      pFill.style.width=pct+"%";pLabel.textContent="JTAS判定完了 → 受入可否確認へ";
+      let h=`<div class="result ${node.color}"><div class="rbadge">${node.badge}</div><div class="rlevel">${node.level}</div><div class="raction">${node.action}</div>`;
+      if(node.note)h+=`<div class="rnote ${node.noteType||''}">${node.note}</div>`;
+      h+=`</div>`;
+      h+=`<hr class="divider">`;
+      h+=`<div class="capacity-header">🏥 受入可否の最終確認</div>`;
+      h+=`<div class="opts"><button class="opt proceed" onclick="nav('${node.next}')"><span class="opt-icon">▶</span><span>処置体制を確認して受入可否を決定する</span></button></div>`;
+      content.innerHTML=h;
+    } else {
+      /* 最終結果（終端） */
+      pFill.style.width="100%";pLabel.textContent="判定完了";
+      let h=`<div class="result ${node.color}"><div class="rbadge">${node.badge}</div><div class="rlevel">${node.level}</div><div class="raction">${node.action}</div>`;
+      if(node.note)h+=`<div class="rnote ${node.noteType||''}">${node.note}</div>`;
+      h+=`</div>`;content.innerHTML=h;
+    }
+  } else {
+    /* 質問ノード */
+    const pct=Math.round(((node.step-1)/node.max)*100);
+    pFill.style.width=pct+"%";
+    pLabel.textContent=node.isFinal?`最終確認ステップ ${node.step} / ${node.max}`:`ステップ ${node.step} / ${node.max}`;
+    let lblClass=node.isFinal?"step-lbl final":"step-lbl";
+    let h=`<div class="${lblClass}">${node.lbl}</div><div class="question">${node.q}</div>`;
+    if(node.sub)h+=`<div class="q-sub">${node.sub}</div>`;
+    if(node.panel){
+      const pd=P[node.panel];
+      h+=`<button class="panel-btn" id="pbtn_${node.panel}" onclick="togglePanel('${node.panel}')">▼ 詳細を見る &nbsp;${pd.title}</button>
+      <div class="panel-body" id="pb_${node.panel}">${pd.html}</div>`;
+    }
+    h+=`<div class="opts">`;
+    for(const o of node.opts){
+      let cls="opt";
+      if(o.sah)cls+=" sah";if(o.cog)cls+=" cog";if(o.dnar)cls+=" dnar-yes";
+      if(o.cpa_no)cls+=" cpa-no";if(o.kakari)cls+=" kakari";
+      if(o.accept)cls+=" accept";if(o.decline)cls+=" decline";
+      h+=`<button class="${cls}" onclick="nav('${o.next}')">`;
+      if(o.icon)h+=`<span class="opt-icon">${o.icon}</span>`;
+      h+=`<span>${o.label}</span></button>`;
+    }
+    h+=`</div>`;content.innerHTML=h;
+  }
+}
+render();
+</script>
+</body>
+</html>
