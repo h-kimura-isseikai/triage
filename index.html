@@ -131,6 +131,45 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;ba
 </div>
 <script>
 const P={
+  vitals:{title:"📋 バイタルサイン 判定基準表",html:`
+    <table style="width:100%;border-collapse:collapse;font-size:11px">
+      <thead>
+        <tr>
+          <th style="padding:5px 8px;border:1px solid #e2e8f0;background:#edf2f7;text-align:left">項目</th>
+          <th style="padding:5px 8px;border:1px solid #e2e8f0;background:#fed7d7;color:#742a2a;text-align:center">🔴 重篤</th>
+          <th style="padding:5px 8px;border:1px solid #e2e8f0;background:#fefcbf;color:#744210;text-align:center">🟡 中等度</th>
+          <th style="padding:5px 8px;border:1px solid #e2e8f0;background:#c6f6d5;color:#1c4532;text-align:center">🟢 正常</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;font-weight:600">SpO₂</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#fff5f5;text-align:center;color:#742a2a;font-weight:700">&lt; 90%</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#fffff0;text-align:center;color:#744210;font-weight:700">90〜94%</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#f0fff4;text-align:center;color:#1c4532;font-weight:700">≥ 95%</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;font-weight:600">収縮期BP</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#fff5f5;text-align:center;color:#742a2a;font-weight:700">&lt;80 か &gt;200</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#fffff0;text-align:center;color:#744210;font-weight:700">&lt;90 か &gt;180</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#f0fff4;text-align:center;color:#1c4532;font-weight:700">90〜180</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;font-weight:600">HR（脈拍）</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#fff5f5;text-align:center;color:#742a2a;font-weight:700">&lt;40 か &gt;150</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#fffff0;text-align:center;color:#744210;font-weight:700">&lt;50 か &gt;120</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#f0fff4;text-align:center;color:#1c4532;font-weight:700">50〜120</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;font-weight:600">体温</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#fff5f5;text-align:center;color:#9b9b9b">—</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#fffff0;text-align:center;color:#744210;font-weight:700">&gt; 38.5℃</td>
+          <td style="padding:6px 8px;border:1px solid #e2e8f0;background:#f0fff4;text-align:center;color:#1c4532;font-weight:700">≤ 38.5℃</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="margin-top:8px;font-size:11px;color:#718096">※いずれか1項目でも該当すれば上位レベルを選択してください。</div>
+  `},
   trauma:{title:"📋 JATECによる高エネルギー外傷の定義",html:`<table>
     <tr><th>受傷機転</th><th>基準値</th></tr>
     <tr><td>高所転落（成人）</td><td>6.1 m 以上（約2階建て相当）</td></tr>
@@ -211,16 +250,16 @@ const T={
       {icon:"🔴",label:"蘇生希望あり（CPR希望・DNARなし）",next:"res_decline_cpa"}
     ]},
   /* ── Step 2-3: バイタル ── */
-  q2:{step:3,max:8,lbl:"③ バイタルサイン（意識障害あり）",q:"バイタルサインの状況はどれですか？",
+  q2:{step:3,max:8,lbl:"③ バイタルサイン（意識障害あり）",q:"バイタルサインの状況はどれですか？",panel:"vitals",
     opts:[
-      {label:"重篤な異常あり（SpO₂<90%・収縮期BP<80か>200・HR<40か>150）",next:"res_orange_vital"},
-      {label:"軽度異常または安定している",next:"q4_chief"}
+      {icon:"🔴",label:"重篤な異常がある（表の赤に1項目以上該当）",next:"res_orange_vital"},
+      {icon:"🟡",label:"中等度以下の異常、または安定している",next:"q4_chief"}
     ]},
-  q3a:{step:2,max:8,lbl:"② バイタルサイン（意識清明）",q:"バイタルサインの状況はどれですか？",
+  q3a:{step:2,max:8,lbl:"② バイタルサイン（意識清明）",q:"バイタルサインの状況はどれですか？",panel:"vitals",
     opts:[
-      {label:"重篤な異常（SpO₂<90%・収縮期BP<80か>200・HR<40か>150）",next:"res_orange_vital"},
-      {label:"中等度の異常（SpO₂ 90〜94%・収縮期BP<90か>180・HR<50か>120台・体温>38.5℃）",next:"res_yellow_vital"},
-      {label:"正常範囲内",next:"q4_chief"}
+      {icon:"🔴",label:"重篤な異常がある（表の赤に1項目以上該当）",next:"res_orange_vital"},
+      {icon:"🟡",label:"中等度の異常がある（表の黄に1項目以上該当）",next:"res_yellow_vital"},
+      {icon:"🟢",label:"正常範囲内（すべて表の緑）",next:"q4_chief"}
     ]},
   q2_cog:{step:2,max:7,lbl:"② 認知機能低下患者 — 変化の確認",q:"今回の状態は普段（ベースライン）と比べてどうですか？",
     sub:"慢性的な認知機能低下との区別が重要です。家族・施設スタッフに確認してください。",
@@ -228,15 +267,16 @@ const T={
       {label:"いつもより明らかに悪い（急性変化あり）",next:"q3b"},
       {label:"普段通り・ベースラインと変わらない",next:"q2_cog_vital"}
     ]},
-  q3b:{step:3,max:8,lbl:"③ バイタルサイン（急性変化あり）",q:"バイタルサインに異常はありますか？",
+  q3b:{step:3,max:8,lbl:"③ バイタルサイン（急性変化あり）",q:"バイタルサインの状況はどれですか？",panel:"vitals",
     opts:[
-      {label:"異常あり",next:"res_orange_vital"},
-      {label:"正常範囲内",next:"q4_chief"}
+      {icon:"🔴",label:"重篤な異常がある（表の赤に1項目以上該当）",next:"res_orange_vital"},
+      {icon:"🟡",label:"中等度以下の異常、または安定している",next:"q4_chief"}
     ]},
-  q2_cog_vital:{step:3,max:7,lbl:"③ バイタルサイン（認知症・ベースライン）",q:"バイタルサインに異常はありますか？",
+  q2_cog_vital:{step:3,max:7,lbl:"③ バイタルサイン（認知症・ベースライン）",q:"バイタルサインの状況はどれですか？",panel:"vitals",
     opts:[
-      {label:"異常あり（SpO₂<95%・収縮期BP<90か>180・HR<50か>120・体温>38.5℃）",next:"q2_cog_chief_abn"},
-      {label:"正常範囲内",next:"q2_cog_chief_norm"}
+      {icon:"🔴",label:"重篤な異常がある（表の赤に1項目以上該当）",next:"res_orange_vital"},
+      {icon:"🟡",label:"中等度以下の異常がある（表の黄・赤以外）",next:"q2_cog_chief_abn"},
+      {icon:"🟢",label:"正常範囲内（すべて表の緑）",next:"q2_cog_chief_norm"}
     ]},
   /* ── Step 4: 主訴 ── */
   q2_cog_chief_abn:{step:4,max:7,lbl:"④ 主な症状・搬送理由（認知症・ベースライン）",q:"今回の搬送の主な理由はどれですか？",
