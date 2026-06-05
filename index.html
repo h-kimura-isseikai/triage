@@ -319,18 +319,8 @@ const T={
   q5_trauma:{step:5,max:8,lbl:"⑤ 外傷の程度",q:"外傷の状況はどれに当てはまりますか？",panel:"trauma",
     opts:[
       {label:"高エネルギー外傷（JATECの基準に該当）",next:"res_orange_trauma"},
-      {label:"中等度外傷（高エネルギーではないが出血・骨折あり）",next:"q5_trauma_pain"},
-      {label:"軽度外傷（打撲・擦傷のみ）",next:"q5_trauma_pain_mild"}
-    ]},
-  q5_trauma_pain:{step:6,max:8,lbl:"⑥ 疼痛評価（中等度外傷）",q:"痛みの強さ（NRS）はどのくらいですか？",panel:"nrs",
-    opts:[
-      {label:"NRS 7以上（強い痛み）",next:"res_yellow_trauma"},
-      {label:"NRS 6以下（中等度以下）",next:"res_green_trauma"}
-    ]},
-  q5_trauma_pain_mild:{step:6,max:8,lbl:"⑥ 疼痛評価（軽度外傷）",q:"痛みの強さ（NRS）はどのくらいですか？",panel:"nrs",
-    opts:[
-      {label:"NRS 4以上",next:"res_green_trauma"},
-      {label:"NRS 3以下",next:"res_blue_trauma"}
+      {label:"中等度外傷（高エネルギーではないが出血・骨折あり）",next:"res_yellow_trauma"},
+      {label:"軽度外傷（打撲・擦傷のみ）",next:"res_green_trauma"}
     ]},
   q5_other:{step:5,max:8,lbl:"⑤ 症状・バイタルの程度",q:"症状の程度・バイタルの状況はどうですか？",
     opts:[
