@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="転棟判断">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1f6f8b">
+<meta name="format-detection" content="telephone=no">
+<title>急性期 → 地域包括ケア病棟 転棟判断ツール</title>
+<style>
+  :root{
+    --bg:#f4f6f9; --card:#fff; --ink:#1f2733; --sub:#5b6675;
+    --line:#e2e7ee; --brand:#1f6f8b; --brand-d:#155264;
+    --ok:#1f9d55; --ok-bg:#e8f6ee; --warn:#c77700; --warn-bg:#fdf3e2;
+    --ng:#c0392b; --ng-bg:#fbeceb; --gate:#7d3c98;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+       background:var(--bg);color:var(--ink);line-height:1.6;font-size:15px;
+       -webkit-tap-highlight-color:transparent}
+  header{background:var(--brand);color:#fff;padding:18px 22px}
+  header h1{margin:0;font-size:19px;font-weight:700}
+  header p{margin:4px 0 0;font-size:13px;opacity:.9}
+  .wrap{max-width:1000px;margin:0 auto;padding:18px}
+  .proto{background:#fff5d6;border:1px solid #e3b56b;border-left:6px solid #c77700;
+         border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#5a4300}
+  .proto b{color:#9a5a00}
+  .proto-note{display:block;font-size:11.5px;color:#8a7a55;margin-top:3px}
+  .tabs{display:flex;gap:4px;margin-bottom:16px;border-bottom:2px solid var(--line)}
+  .tabs button{background:none;border:none;padding:10px 18px;font-size:14px;font-weight:700;
+                color:var(--sub);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px}
+  .tabs button.active{color:var(--brand);border-bottom-color:var(--brand)}
+  .tabpane[hidden]{display:none}
+  .refsheet{max-width:880px}
+  .refsheet .rhead{font-size:18px;font-weight:800;border-left:6px solid var(--brand);padding-left:10px;margin:0 0 2px}
+  .refsheet .subttl{color:var(--sub);font-size:12px;margin:0 0 16px;padding-left:16px}
+  .refsheet h2{font-size:15px;margin:22px 0 8px;color:var(--brand);border-bottom:2px solid #eef4f7;padding-bottom:3px}
+  .refsheet h3{font-size:13.5px;margin:14px 0 4px;color:#155264}
+  .refsheet table{width:100%;border-collapse:collapse;margin:6px 0 4px;font-size:13px}
+  .refsheet th,.refsheet td{border:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:top}
+  .refsheet th{background:#eef4f7;font-weight:700;white-space:nowrap}
+  .refsheet td.d{text-align:center;font-weight:700;color:var(--brand);white-space:nowrap}
+  .refsheet .note{font-size:12px;color:var(--sub);margin:6px 0}
+  .refsheet .box{border:1px solid #e3b56b;background:var(--warn-bg);border-radius:8px;padding:10px 14px;margin:10px 0;font-size:12.5px}
+  .refsheet .box.ok{border-color:#8fcfa9;background:var(--ok-bg)}
+  .refsheet .calc{font-family:ui-monospace,Menlo,monospace;background:#f0f3f7;border-radius:6px;padding:2px 6px}
+  .refsheet .big{font-size:16px;font-weight:800;color:var(--brand)}
+  .refsheet ul{margin:4px 0;padding-left:20px}
+  .refsheet li{margin:2px 0}
+  /* 当院で関わる手術・検査・処置（docx赤字）＝強調 */
+  .mine{color:#c0392b;font-weight:800}
+  .mybadge{display:inline-block;font-size:10px;font-weight:700;color:#fff;background:#c0392b;
+           border-radius:10px;padding:1px 6px;margin-left:6px;vertical-align:middle}
+  .refsheet tr.mine-row td{background:#fdf0ef}
+  .refsheet tr.mine-row td:nth-child(2){color:#c0392b;font-weight:800}
+  .refsheet tr.mine-row td.d{color:#c0392b}
+  /* それ以外＝小さく・控えめ */
+  .refsheet tr.muted-row td{font-size:11px;color:#9aa6b5}
+  .refsheet tr.muted-row td.d{color:#9aa6b5;font-weight:600}
+  .refsheet li.mine{color:#c0392b;font-weight:700;font-size:13.5px;list-style:none;margin-left:-12px}
+  .refsheet li.mine:before{content:"●";color:#c0392b;font-size:10px;margin-right:6px;vertical-align:middle}
+  .refsheet ul.others{margin-top:4px}
+  .refsheet ul.others li{font-size:11px;color:#9aa6b5;line-height:1.5}
+  .refsheet .mlabel{font-size:11.5px;font-weight:700;color:#c0392b;margin:6px 0 2px}
+  .refsheet .olabel{font-size:11px;font-weight:700;color:#9aa6b5;margin:8px 0 2px}
+  .refsheet .foot{margin-top:22px;font-size:11px;color:var(--sub);border-top:1px solid var(--line);padding-top:10px;line-height:1.5}
+  @media print{.tabs,.proto{display:none}}
+  .grid{display:grid;grid-template-columns:1fr 360px;gap:18px;align-items:start}
+  @media(max-width:860px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+        padding:16px 18px;margin-bottom:16px}
+  .meta{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .meta label{display:block;font-size:12px;color:var(--sub);margin-bottom:3px}
+  .meta input{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-size:16px}
+  h2.sec{font-size:15px;margin:0 0 4px;display:flex;align-items:center;gap:8px}
+  .sec .tag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;color:#fff}
+  .tag-gate{background:var(--gate)}
+  .tag-score{background:var(--brand)}
+  .sec-note{font-size:12px;color:var(--sub);margin:0 0 12px}
+  .item{border-top:1px solid var(--line);padding:10px 0}
+  .item:first-of-type{border-top:none}
+  .item .q{display:block;margin-bottom:6px}
+  .item .q b{font-weight:600}
+  .item .hint{font-size:12px;color:var(--sub);display:block;margin-top:2px}
+  .opts{display:flex;gap:6px;flex-wrap:wrap}
+  .opts label{cursor:pointer}
+  .opts input{display:none}
+  .opts span{display:inline-block;padding:8px 18px;border:1px solid var(--line);
+             border-radius:20px;font-size:14px;background:#fff;transition:.12s}
+  .opts input:checked+span.y{background:var(--ok);color:#fff;border-color:var(--ok)}
+  .opts input:checked+span.n{background:var(--ng);color:#fff;border-color:var(--ng)}
+  .opts input:checked+span.na{background:#8895a7;color:#fff;border-color:#8895a7}
+  .panel{position:sticky;top:18px}
+  .verdict{border-radius:12px;padding:18px;text-align:center;border:2px solid}
+  .verdict .big{font-size:22px;font-weight:800;margin:4px 0}
+  .verdict .score{font-size:13px;color:var(--sub)}
+  .v-ok{background:var(--ok-bg);border-color:var(--ok)} .v-ok .big{color:var(--ok)}
+  .v-warn{background:var(--warn-bg);border-color:var(--warn)} .v-warn .big{color:var(--warn)}
+  .v-ng{background:var(--ng-bg);border-color:var(--ng)} .v-ng .big{color:var(--ng)}
+  .v-idle{background:#eef1f5;border-color:var(--line)} .v-idle .big{color:var(--sub)}
+  .reasons{margin:14px 0 0;padding:0;list-style:none;font-size:13px;text-align:left}
+  .reasons li{padding:6px 0 6px 22px;position:relative;border-top:1px dashed var(--line)}
+  .reasons li:before{position:absolute;left:0;top:6px;font-weight:700}
+  .reasons li.bad:before{content:"✕";color:var(--ng)}
+  .reasons li.caut:before{content:"!";color:var(--warn)}
+  .reasons li.good:before{content:"✓";color:var(--ok)}
+  .bar{height:10px;border-radius:6px;background:#e3e8ef;overflow:hidden;margin:10px 0 4px}
+  .bar>div{height:100%;background:var(--brand);transition:width .25s}
+  textarea{width:100%;min-height:70px;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:16px;font-family:inherit}
+  .btns{display:flex;gap:8px;margin-top:12px}
+  button{flex:1;padding:10px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
+  .b-print{background:var(--brand);color:#fff}
+  .b-reset{background:#fff;border:1px solid var(--line);color:var(--sub)}
+  .dsttbl{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  @media(max-width:600px){.dsttbl{grid-template-columns:1fr}}
+  .dstcol{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+  .dstcol.maru{background:var(--ok-bg)}
+  .dstcol.shikaku{background:#f1f4f8}
+  .dsthd{font-weight:700;font-size:12.5px;margin-bottom:4px}
+  .dstcol.maru .dsthd{color:var(--ok)}
+  .dstcol.shikaku .dsthd{color:var(--sub)}
+  .dstcol ul{margin:0;padding-left:16px}
+  .dstcol li{font-size:11.5px;color:var(--ink);margin:2px 0;line-height:1.45}
+  details.fold{margin-top:8px;border:1px solid var(--line);border-radius:8px;background:#fafbfc}
+  details.fold>summary{cursor:pointer;padding:9px 12px;font-size:12.5px;font-weight:700;
+                       color:var(--brand);list-style:none}
+  details.fold>summary::-webkit-details-marker{display:none}
+  details.fold>summary:before{content:"▸ "}
+  details.fold[open]>summary:before{content:"▾ "}
+  details.fold .dsttbl,details.fold .reftbl{margin:0 12px 10px}
+  details.fold .pad{padding:0 12px 10px}
+  .nojs{display:none}
+  .nojs-on .nojs{display:block;background:#fbeceb;border:1px solid #e3a8a3;border-radius:8px;
+                 padding:12px 14px;margin-bottom:14px;font-size:13px;color:#8a2b22}
+  .reftbl{width:100%;border-collapse:collapse;margin-top:8px;font-size:12.5px}
+  .reftbl th,.reftbl td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+  .reftbl th{background:#eef4f7;font-weight:700}
+  .reftbl td:first-child{white-space:nowrap;font-weight:600}
+  .tag2{display:inline-block;font-size:10px;font-weight:700;color:#fff;background:var(--brand);border-radius:10px;padding:1px 6px;margin-left:4px;vertical-align:middle}
+  .disc{font-size:11px;color:var(--sub);margin-top:14px;line-height:1.5}
+  footer{text-align:center;font-size:11px;color:var(--sub);padding:10px}
+  /* スマホ下部に固定する判定バー */
+  .mbar{display:none}
+  .mbar.mb-hide{display:none!important}
+  /* スマホ・タブレット最適化 */
+  @media(max-width:860px){
+    .wrap{padding:12px}
+    header{padding:14px 16px}
+    header h1{font-size:17px}
+    .card{padding:13px 14px;border-radius:10px}
+    .meta{grid-template-columns:1fr 1fr}
+    .tabs button{padding:10px 12px;font-size:13px}
+    /* 判定パネルは下。問診を上に出し、結果は下部固定バーで確認 */
+    .panel{position:static}
+    .panel .disc{display:none}
+    .verdict .big{font-size:20px}
+    /* 別紙の表は横スクロール可に */
+    .refsheet table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap}
+    .refsheet .rhead{font-size:16px}
+    /* 下部固定の判定バー（スクロール中も結果が見える） */
+    body{padding-bottom:64px}
+    .mbar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+          position:fixed;left:0;right:0;bottom:0;z-index:50;
+          padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+          background:#fff;border-top:1px solid var(--line);box-shadow:0 -3px 12px rgba(0,0,0,.08);
+          font-size:14px;font-weight:700;cursor:pointer}
+    .mbar .mb-big{font-size:15px;font-weight:800}
+    .mbar .mb-score{font-size:12px;font-weight:600;color:var(--sub);white-space:nowrap}
+    .mbar.v-ok{color:var(--ok)} .mbar.v-warn{color:var(--warn)}
+    .mbar.v-ng{color:var(--ng)} .mbar.v-idle{color:var(--sub)}
+  }
+  @media print{.mbar{display:none!important}
+
+    header,.panel-actions,.b-print,.b-reset,.opts input+span{ }
+    body{background:#fff}
+    .opts span{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .panel{position:static}
+    .grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>急性期 → 地域包括ケア病棟 転棟判断ツール</h1>
+  <p>病棟看護師向けスクリーニング　／　2026年6月施行 診療報酬改定対応　／　最終判断は主治医が行ってください</p>
+</header>
+
+<div class="wrap">
+<div class="proto">
+  <b>試作版・評価用</b>　動作確認のための試作です。お気づきの点・改善のご意見は <b>院長のLINE WORKS</b> までお願いします。
+  <span class="proto-note">（入力内容は保存されません。院内のみで使用し、院外への共有は不可）</span>
+</div>
+
+<noscript>
+  <div style="background:#fbeceb;border:1px solid #e3a8a3;border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:#8a2b22">
+    <b>このツールはSafariで開いてください。</b><br>
+    メールの添付やファイルアプリのプレビューで開くと、設問が表示されず動作しません。
+    ファイルアプリに保存 →（または共有ボタンから）→「Safariで開く」、もしくはホーム画面に追加してアイコンから起動してください。
+  </div>
+</noscript>
+<div class="tabs">
+  <button id="tabbtn-tool" class="active" onclick="showTab('tool')">転棟判断</button>
+  <button id="tabbtn-ref" onclick="showTab('ref')">別紙：看護必要度C項目</button>
+</div>
+
+<div id="tab-tool" class="tabpane">
+<div class="grid">
+  <!-- 左：入力 -->
+  <div>
+    <div class="card">
+      <div class="meta">
+        <div><label>患者ID</label><input id="pid" type="text" placeholder="任意"></div>
+        <div><label>氏名</label><input id="pname" type="text" placeholder="任意"></div>
+        <div><label>急性期 入院日</label><input id="addate" type="date"></div>
+        <div><label>評価日</label><input id="evdate" type="date"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="sec">想定退院先（在宅復帰率の区分）</h2>
+      <p class="sec-note">退院先の区分により在宅復帰率への影響が変わります（〇＝算入／□＝下げる）。</p>
+      <div class="opts" id="dstopts">
+        <label><input type="radio" name="dst" value="maru"><span class="y">〇 自宅・自宅に準ずる</span></label>
+        <label><input type="radio" name="dst" value="shikaku"><span class="na">□ 老健・長期療養型・回復期</span></label>
+        <label><input type="radio" name="dst" value="mitei"><span class="na">未定・その他</span></label>
+      </div>
+      <details class="fold">
+      <summary>退院先の具体例（施設名）を見る</summary>
+      <div class="dsttbl">
+        <div class="dstcol maru">
+          <div class="dsthd">〇 自宅・自宅に準ずる（在宅復帰率に算入）</div>
+          <ul>
+            <li><b>自宅</b></li>
+            <li><b>有料老人ホーム</b>：まちや明生苑、ナーシングホーム南千住、すこやか西尾久 ほか</li>
+            <li><b>サービス付き高齢者向け住宅</b></li>
+            <li><b>介護医療院</b>：寺田介護医療院、磯介護医療院 ほか</li>
+            <li><b>特別養護老人ホーム</b>：グリーンハイム荒川、花の木ハイム、さくら館、サンハイム、おたけの郷、癒しの里、信愛のぞみの郷 ほか</li>
+            <li><b>グループホーム</b>：愛の家、楽しい家、ニチイケア ほか</li>
+            <li><b>ショートステイ</b>（老健ショートステイは可）</li>
+            <li><b>ケアハウス（軽費老人ホーム）</b>：ケアハウス東日暮里、ケアハウス町屋 ほか</li>
+          </ul>
+        </div>
+        <div class="dstcol shikaku">
+          <div class="dsthd">□ 転棟は可だが在宅復帰率を下げる</div>
+          <ul>
+            <li><b>介護老人保健施設（老健）</b>：ひぐらしの里、けんちの苑、老健まちや ほか</li>
+            <li><b>長期療養型病院</b>：南千住病院、関川病院、荒川病院 ほか</li>
+            <li><b>回復期病棟</b>：脳梗塞・脳出血、大腿骨骨折 等の対象疾患</li>
+          </ul>
+        </div>
+      </div>
+      </details>
+    </div>
+
+    <!-- セクションはJSで描画 -->
+    <div id="sections"></div>
+
+    <div class="card">
+      <h2 class="sec">参考：地域包括ケア病棟で出来高算定できる医薬品（包括除外）</h2>
+      <p class="sec-note">下記は地ケアでも別途出来高で算定でき、転棟しても持ち出しにならない医薬品です（令和8年度改定・別表第5の1の2）。これらの使用は⑤の収益判断で「該当しない（はい）」扱いで問題ありません。</p>
+      <details class="fold">
+      <summary>出来高算定できる医薬品の一覧を見る</summary>
+      <table class="reftbl">
+        <tr><th>分類</th><th>主な例・備考</th></tr>
+        <tr><td>抗悪性腫瘍剤</td><td>悪性新生物の患者に使用するもの（注射・内服）</td></tr>
+        <tr><td>生物学的製剤 <span class="tag2">2026追加</span></td><td>インフリキシマブ、アダリムマブ、トシリズマブ 等（免疫・アレルギー疾患で入院前から継続・他剤代替不能の場合に限る）</td></tr>
+        <tr><td>JAK阻害薬 <span class="tag2">2026追加</span></td><td>トファシチニブ、バリシチニブ 等（同上の要件）</td></tr>
+        <tr><td>血友病等の医薬品 <span class="tag2">対象拡大</span></td><td>血液凝固因子製剤、エミシズマブ 等（血友病＋類縁疾患の出血傾向抑制）</td></tr>
+        <tr><td>インターフェロン・抗ウイルス剤</td><td>B型・C型肝炎等の抗ウイルス治療 等</td></tr>
+        <tr><td>医療用麻薬</td><td>モルヒネ、オキシコドン、フェンタニル 等（疼痛コントロール）</td></tr>
+        <tr><td>腎性貧血治療薬</td><td>ESA製剤（エポエチン・ダルベポエチン）、HIF-PH阻害薬 等</td></tr>
+      </table>
+      <p class="sec-note pad" style="margin-top:6px">※新型コロナ抗ウイルス剤を除外扱いとする特例は2026年5月末で終了（6月以降は包括）。完全な品名・コードは別表第5の1の2（告示）が正式な根拠です。</p>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2 class="sec">メモ・特記事項</h2>
+      <textarea id="memo" placeholder="退院先の調整状況、家族の意向、残る課題など"></textarea>
+    </div>
+  </div>
+
+  <!-- 右：判定パネル -->
+  <div class="panel">
+    <div class="card">
+      <div id="verdict" class="verdict v-idle">
+        <div class="score" id="vlabel">判定</div>
+        <div class="big" id="vbig">入力してください</div>
+        <div class="score" id="vsub"></div>
+      </div>
+      <div class="bar"><div id="bar" style="width:0%"></div></div>
+      <div class="score" id="barlabel" style="text-align:right;font-size:12px;color:var(--sub)"></div>
+      <ul class="reasons" id="reasons"></ul>
+      <div class="btns panel-actions">
+        <button class="b-print" onclick="window.print()">印刷 / PDF</button>
+        <button class="b-reset" onclick="resetAll()">リセット</button>
+      </div>
+      <p class="disc">
+        本ツールは多職種での申し送り・カンファレンス支援を目的とした参考スクリーニングです。
+        制度要件は2026年6月施行の診療報酬改定をふまえていますが、算定可否の最終的な根拠は
+        厚労省の告示・通知です。最終的な転棟判断は、施設基準・個別の臨床状況をふまえ
+        主治医および診療報酬担当者が決定してください。
+      </p>
+    </div>
+  </div>
+</div>
+</div><!-- /#tab-tool -->
+
+<div id="tab-ref" class="tabpane refsheet" hidden>
+  <div style="text-align:right;margin-bottom:8px"><button class="b-print" style="padding:8px 16px;border-radius:7px" onclick="window.print()">この別紙を印刷 / PDF</button></div>
+  <div class="rhead">別紙｜看護必要度 C項目「手術等の医学的状況」該当項目一覧</div>
+  <p class="subttl">木村病院 3F急性期病棟（急性期一般入院料4）　／　2026年6月施行 診療報酬改定対応</p>
+
+  <h2>1. C項目に該当する手術・処置と評価日数</h2>
+  <p class="note">下表の手術・処置を受けた患者は、評価日数の間はC項目1点として看護必要度に算入されます。<b>手術（実施）当日を1日目</b>として数えます。該当日数の間は3階急性期病棟での入院継続が望ましく、この期間を満たしてから4階への転棟を検討します。<b>日数は令和8年度改定の評価票（厚労省資料）に準拠</b>。</p>
+  <p class="note"><span class="mine">赤字＝当院で関わる手術・検査・処置<span class="mybadge">当院</span></span>　／　それ以外は参考として小さく表示しています。</p>
+  <table>
+    <tr><th>No</th><th>C項目（手術等の医学的状況）</th><th>評価日数</th><th>主な内容・例</th></tr>
+    <tr class="muted-row"><td class="d">15</td><td>開頭手術</td><td class="d">11日間</td><td>開頭により頭蓋内に達する手術（穿頭・内視鏡下を除く）</td></tr>
+    <tr class="muted-row"><td class="d">16</td><td>開胸手術</td><td class="d">9日間</td><td>胸壁切開により胸腔・縦隔に達する手術（胸腔鏡下を除く）</td></tr>
+    <tr class="muted-row"><td class="d">17</td><td>開腹手術</td><td class="d">6日間</td><td>腹壁切開により腹腔・骨盤腔に達する手術（腹腔鏡下を除く）</td></tr>
+    <tr class="mine-row"><td class="d">18</td><td>骨の手術<span class="mybadge">当院</span></td><td class="d">10日間</td><td>骨切り・関節置換・脊椎固定・骨悪性腫瘍手術 等（抜釘を除く）</td></tr>
+    <tr class="muted-row"><td class="d">19</td><td>胸腔鏡・腹腔鏡手術</td><td class="d">4日間</td><td>胸腔鏡下・腹腔鏡下の手術</td></tr>
+    <tr class="mine-row"><td class="d">20</td><td>全身麻酔・脊椎麻酔の手術<span class="mybadge">当院</span></td><td class="d">5日間</td><td>No15〜19以外で全身麻酔・脊椎麻酔を伴う手術</td></tr>
+    <tr class="muted-row"><td class="d">21</td><td>救命等に係る内科的治療</td><td class="d">4日間</td><td>①経皮的血管内治療　②経皮的心筋焼灼術等の治療　③侵襲的な消化器治療（詳細は §2）</td></tr>
+    <tr class="muted-row"><td class="d">22</td><td>別に定める検査</td><td class="d">2日間</td><td>例：経皮的針生検法（詳細は §2）</td></tr>
+    <tr class="mine-row"><td class="d">23</td><td>別に定める手術<span class="mybadge">当院</span></td><td class="d">5日間</td><td>当院該当：内シャント設置術・各種胃瘻造設術・消化管ステント留置術 等（詳細は §2）</td></tr>
+  </table>
+  <div class="box">
+    <b>転棟時の注意：</b>上記に該当する場合、原則その評価日数の間は3階で入院継続。
+    日数経過後（または該当手術・処置がない場合）に転棟可。<b>労災の患者は看護必要度にカウントされません。</b>
+    迷う場合は院長（不在時は浅野医師）・師長・4階リーダーと相談。
+  </div>
+
+  <h2>2. 「別に定める検査・別に定める手術・救命内科的治療」の具体的項目</h2>
+  <p class="note">厚労省「令和8年度改定 急性期・高度急性期入院医療」資料に明記された具体的項目です。<span class="mine">●＝当院で関わる手術・検査・処置（院内ルール赤字）</span>を強調表示し、それ以外は参考として小さく表示しています。完全な対象は「レセプト電算処理システム用コード一覧（評価の手引き 令和8年度版）」が正式な根拠です。</p>
+
+  <h3>No21 救命等に係る内科的治療（4日間）</h3>
+  <div class="olabel">当院で関わるもの：該当なし（以下は参考）</div>
+  <ul class="others">
+    <li>① 経皮的血管内治療（経皮的脳血管治療、t-PA療法、冠動脈カテーテル治療、ステントグラフト 等）</li>
+    <li>② 経皮的心筋焼灼術等の治療（体外ペーシング〔入院中初回2日間〕、ペースメーカー・除細動器植込み 等）</li>
+    <li>③ 侵襲的な消化器治療（内視鏡的胆道・膵管治療、ESD、緊急止血術 等）</li>
+    <li>中心静脈注射用カテーテル挿入／カフ型緊急時ブラッドアクセス用留置カテーテル挿入／腰椎穿刺／脳脊髄腔注射（腰椎）</li>
+    <li>吸着式血液浄化法／カウンターショック（その他）／持続緩徐式血液濾過／エンドトキシン選択除去用吸着式血液浄化法</li>
+    <li>経皮経肝胆管ステント挿入術／内視鏡下胃・十二指腸穿孔瘻孔閉鎖術／経皮経肝バルーン拡張術</li>
+  </ul>
+
+  <h3>No22 別に定める検査（2日間）</h3>
+  <div class="olabel">当院で関わるもの：該当なし（以下は参考）</div>
+  <ul class="others">
+    <li>経皮的針生検法／EF－気管支／経気管肺生検法／EBUS－TBNA／気管支カテーテル気管支肺胞洗浄法検査</li>
+    <li>超音波検査（心臓超音波検査）（経食道心エコー法）／組織試験採取・切採法（心筋）</li>
+  </ul>
+
+  <h3>No23 別に定める手術（5日間）</h3>
+  <div class="mlabel">当院で関わるもの</div>
+  <ul>
+    <li class="mine">内シャント設置術</li>
+    <li class="mine">胸水・腹水濾過濃縮再静注法</li>
+    <li class="mine">胃瘻造設術（経皮的内視鏡下・腹腔鏡下を含む）</li>
+    <li class="mine">薬剤投与用胃瘻造設術</li>
+    <li class="mine">経皮経食道胃管挿入術（PTEG）</li>
+    <li class="mine">内視鏡的胃・十二指腸ステント留置術</li>
+    <li class="mine">下部消化管ステント留置術</li>
+    <li class="mine">内視鏡的胃・十二指腸狭窄拡張術</li>
+  </ul>
+  <div class="olabel">その他（参考）</div>
+  <ul class="others">
+    <li>眼窩内異物除去術／経皮的胆管ドレナージ術／経皮的肝膿瘍ドレナージ術／経皮的腹腔膿瘍ドレナージ術／膵嚢胞外瘻造設術（内視鏡によるもの）</li>
+    <li>体外衝撃波胆石破砕術（一連につき）／体外衝撃波膵石破砕術（一連につき）／小腸・結腸狭窄部拡張術（内視鏡によるもの）</li>
+    <li>肝悪性腫瘍マイクロ波凝固法〔腹腔鏡〕／肝悪性腫瘍マイクロ波凝固法〔その他〕／造血幹細胞採取（末梢血幹細胞採取・自家移植）</li>
+  </ul>
+  <p class="note">※A項目にも2026年改定で追加あり：①抗悪性腫瘍剤（注射）にホリナートカルシウム・ラスブリカーゼ（遺伝子組換え）を追加。</p>
+
+  <h2>3. 「該当患者」の定義（急性期一般入院料4）</h2>
+  <p class="note">急性期一般2〜5では、次のいずれかを満たす患者が「基準を満たす患者（該当患者）」です。</p>
+  <ul>
+    <li><b>A項目2点以上 かつ B項目3点以上</b>、または</li>
+    <li><b>A項目3点以上</b>、または</li>
+    <li><b>C項目1点以上</b>（＝上表の手術・処置に該当）</li>
+  </ul>
+  <p class="note">A項目＝モニタリング及び処置等／B項目＝患者の状況等／C項目＝手術等の医学的状況。2026年改定でA項目に一時的ペーシング・抗不整脈剤（注射）・蘇生術等、C項目に内科的治療等が追加されました。</p>
+
+  <h2>4. 急性期一般入院料4の基準値（該当患者割合指数）</h2>
+  <p class="note">2026年改定では「該当患者割合」そのものではなく、救急搬送実績を加えた<b>該当患者割合指数</b>で判定します。</p>
+  <table>
+    <tr><th>区分</th><th>必要度Ⅱ（DPC等）</th><th>必要度Ⅰ（評価票）</th><th>平均在院日数</th><th>在宅復帰率</th></tr>
+    <tr><td>急性期一般4 基準（指数）</td><td class="d">19％以上</td><td class="d">20％以上</td><td class="d">21日以内</td><td class="d">—</td></tr>
+  </table>
+  <p class="note">※在宅復帰・病床機能連携率8割以上は急性期1・2・4等に課されます（区分により異なるため自院届出を確認）。改定前は必要度Ⅱ15%／Ⅰ16%でした。</p>
+
+  <h2>5. 救急患者応需係数（当院は上限の10%が加算）</h2>
+  <div class="box ok">
+    <span class="calc">割合指数 ＝ 病棟の患者該当割合（％） ＋ 救急患者応需係数</span><br>
+    救急患者応需係数 ＝ 1病床あたりの年間救急搬送受入件数 × 0.005　（<b>上限 1割＝10ポイント</b>）<br>
+    当院は救急搬送実績により係数が上限の <b>10％</b> 加算されます。
+  </div>
+  <p class="note">このため、基準（指数）を満たすために必要な<b>実際の病棟該当患者割合</b>は、その分だけ低くなります。</p>
+  <table>
+    <tr><th>　</th><th>基準（指数）</th><th>救急係数</th><th>実質必要な病棟該当割合</th></tr>
+    <tr><td>必要度Ⅱ</td><td class="d">19％</td><td class="d">－10％</td><td class="d"><span class="big">9％以上</span></td></tr>
+    <tr><td>必要度Ⅰ</td><td class="d">20％</td><td class="d">－10％</td><td class="d"><span class="big">10％以上</span></td></tr>
+  </table>
+  <p class="note">＝ 病棟の実該当割合が 必要度Ⅱで9％、必要度Ⅰで10％ あれば、係数10％を加えて基準（19％／20％）を満たす計算になります。転棟により病棟の該当割合がこの実質ラインを下回らないよう留意してください。</p>
+
+  <div class="foot">
+    【出典】厚生労働省「令和8年度診療報酬改定 ３.急性期・高度急性期入院医療」評価票（p8）・対象の追加（p9）。C項目の評価日数・具体項目は本資料に準拠。<br>
+    【経過措置】2026年6月〜9月30日は旧評価票での評価が可能。2026年10月1日より新評価票へ完全移行。<br>
+    §2の項目一覧は本資料に明記されたもの（★＝2026年追加）。完全な対象範囲は「レセプト電算処理システム用コード一覧（評価の手引き 令和8年度版）」が最終的な根拠です。算定の最終確認は診療報酬担当者が行ってください。
+  </div>
+</div><!-- /#tab-ref -->
+</div><!-- /.wrap -->
+<div id="mbar" class="mbar v-idle" onclick="document.getElementById('verdict').scrollIntoView({behavior:'smooth',block:'center'})">
+  <span class="mb-big" id="mb-big">入力してください</span>
+  <span class="mb-score" id="mb-score">タップで詳細 ▲</span>
+</div>
+<footer>木村病院 病棟運用支援ツール（参考版）</footer>
+
+<script>
+/* ===== 判定項目定義 =====
+   type: gate = 必須条件（「いいえ」で転棟不可〜要再検討）
+         score = 重み付き評価項目
+   weight: スコア寄与（はい=満点 / 部分=半分扱いは無し、はい/いいえ/該当なし）
+*/
+const SECTIONS = [
+ {
+  id:"med", title:"① 医学的安定性（急性期治療の完了）", kind:"gate",
+  note:"急性期での濃密な治療・観察が必要な状態は地ケア病棟では対応困難。原則すべて「はい」が望ましい。",
+  items:[
+   {id:"vital", q:"バイタルが安定している（発熱・血圧・呼吸が落ち着いている）", gate:true},
+   {id:"tx",    q:"主たる急性期治療（手術・主たる薬物治療等）が完了または方針が確定している", gate:true},
+   {id:"drip",  q:"持続点滴・昇圧剤・頻回の緊急処置が不要、または地ケア病棟で対応可能なレベル", gate:true},
+   {id:"o2",    q:"高流量酸素・人工呼吸器・厳重な呼吸管理を要しない", gate:true},
+   {id:"risk",  q:"24〜48時間以内の急変・再増悪リスクが低いと評価できる", gate:true, hint:"不安定なら時期尚早"},
+   {id:"hbo",   q:"高気圧酸素治療を実施していない", gate:true, hint:"実施中は地域包括ケア病棟へ転棟不可"},
+  ]
+ },
+ {
+  id:"nurse", title:"② 看護・医療区分（病棟で対応可能か）", kind:"score",
+  note:"当院の地ケア病棟（看護10対1）の体制で安全に管理できる医療・看護レベルか。",
+  items:[
+   {id:"care",  q:"必要な医療処置が地ケア病棟の体制で安全に提供できる", weight:2},
+   {id:"need",  q:"重症度・看護必要度の観点で、急性期病棟での管理を要する状態を脱している", weight:2, hint:"A項目が大きく下がっている等"},
+  ]
+ },
+ {
+  id:"inhouse", title:"③ 院内ルール｜必須（木村病院 3F急性期→4F地ケア）", kind:"gate",
+  note:"地ケア会議の承認と主治医の転棟可否「〇」が揃って初めて転棟可。いずれか欠ける場合は転棟不可。",
+  items:[
+   {id:"kaigi",  q:"地ケア会議で「×（地ケア不可）」となっていない（〇または□で承認）", gate:true, hint:"×はカードを「地ケア不可」へ移動"},
+   {id:"doctor", q:"主治医が転棟可否「〇」を記入し、患者・家族へ転棟の説明が済んでいる", gate:true, hint:"会議で〇/□でも主治医〇の記入がなければ転棟不可"},
+   {id:"readmit",q:"前回の4階（地ケア）退院から◯か月以内の再転棟ではない", gate:true, hint:"◯か月以内は転棟不可。院内で月数確定後にこの「◯」を数値へ修正"},
+  ]
+ },
+ {
+  id:"inrule", title:"④ 院内ルール｜転棟までの注意点", kind:"score",
+  note:"木村病院のベッドコントロール運用上の確認事項。迷う場合は院長（不在時は浅野医師）・師長・4階リーダーと相談。",
+  items:[
+   {id:"day15",  q:"入院15日目以降である（14日間は急性期加算の算定対象。※手術日を1日目として数える）", weight:2, hint:"原則15日目以降の転棟が望ましい"},
+   {id:"cproc",  q:"看護必要度C項目（手術・麻酔）で定められた3階入院日数を満たしている", weight:0.5, hint:"別紙「看護必要度C項目」参照。該当する手術・処置がなければ「該当なし」。労災は必要度カウント外。救急応需係数で10%加算があるため重みは軽め（同条件の患者間の優先順位付けに使用）"},
+   {id:"nq15",   q:"この患者は現在、看護必要度の「該当患者」ではない（A2点以上かつB3点以上／A3点以上／C1点以上のいずれも満たさない）", weight:0.5, hint:"日々の看護必要度評価から判断。該当患者でなければ「はい」（転棟しても3階の該当割合を下げない）。救急応需係数で10%の余裕があるため重みは軽め"},
+  ]
+ },
+ {
+  id:"revenue", title:"⑤ 収益性の確認（当院 急性期＝出来高／地ケア＝包括）", kind:"score",
+  note:"地ケアは投薬・注射・処置・検査・リハが包括。ただし下表の医薬品は地ケアでも出来高算定でき持ち出しにならない（転棟しても収益は中立）。下表に該当しない高額薬剤や濃厚リハを続ける間は、出来高の急性期の方が収益上有利な場合がある。臨床上の転棟可否とは別の観点です。",
+  items:[
+   {id:"drgpkg", q:"継続中の高額な薬剤・注射がない、または下表（地ケアでも出来高算定可）に含まれるものだけである", weight:1, hint:"下表の医薬品は転棟しても持ち出しにならない。高額薬剤の継続がなければ「はい」",
+    cautionMsg:"出来高対象外の高額薬剤を使用中：地ケアでは包括（持ち出し）。出来高の急性期継続も検討"},
+   {id:"rehvol", q:"濃厚なリハビリ（1日3単位以上）を要しない", weight:1, hint:"地ケアはリハ包括。急性期(出来高)はリハを出来高算定可",
+    cautionMsg:"濃厚リハ（3単位以上）：地ケアはリハ包括（持ち出し）。急性期継続や回復期リハ病棟の適応も検討"},
+  ]
+ },
+];
+
+const state = {}; // id -> "y"/"n"/"na"
+
+function render(){
+  const root = document.getElementById("sections");
+  root.innerHTML = "";
+  SECTIONS.forEach(sec=>{
+    const card = document.createElement("div");
+    card.className="card";
+    const tagClass = sec.kind==="gate"?"tag-gate":"tag-score";
+    const tagText = sec.kind==="gate"?"必須条件":"評価項目";
+    card.innerHTML = `<h2 class="sec">${sec.title}<span class="tag ${tagClass}">${tagText}</span></h2>
+                      <p class="sec-note">${sec.note}</p>`;
+    sec.items.forEach(it=>{
+      const wrap=document.createElement("div");
+      wrap.className="item";
+      const hint = it.hint?`<span class="hint">${it.hint}</span>`:"";
+      wrap.innerHTML = `<span class="q"><b>${it.q}</b>${hint}</span>
+        <div class="opts">
+          ${opt(it.id,"y","はい")}
+          ${opt(it.id,"n","いいえ")}
+          ${opt(it.id,"na","該当なし")}
+        </div>`;
+      card.appendChild(wrap);
+    });
+    root.appendChild(card);
+  });
+  bindOpts();
+}
+function opt(id,val,txt){
+  const cls = val==="y"?"y":val==="n"?"n":"na";
+  return `<label><input type="radio" name="${id}" value="${val}"><span class="${cls}">${txt}</span></label>`;
+}
+function bindOpts(){
+  document.querySelectorAll('input[type=radio]').forEach(r=>{
+    r.addEventListener("change",e=>{ state[e.target.name]=e.target.value; evaluate(); });
+  });
+}
+
+function evaluate(){
+  const reasons=[];
+  let gateFail=0, gateUnanswered=0;
+  // ゲート評価（必須条件のセクションすべて）
+  SECTIONS.filter(s=>s.kind==="gate").forEach(gate=>{
+    gate.items.forEach(it=>{
+      const v=state[it.id];
+      if(v===undefined){gateUnanswered++;}
+      else if(v==="n"){gateFail++; reasons.push({t:"bad",msg:`必須未充足：${shorten(it.q)}`});}
+    });
+  });
+
+  // スコア評価
+  let got=0, max=0;
+  SECTIONS.filter(s=>s.kind==="score").forEach(sec=>{
+    sec.items.forEach(it=>{
+      const v=state[it.id];
+      if(v==="na") return;          // 該当なしは分母から除外
+      max+=it.weight;
+      if(v==="y") got+=it.weight;
+      else if(v==="n") reasons.push({t:"caut",msg: it.cautionMsg ? it.cautionMsg : `要確認：${shorten(it.q)}`});
+    });
+  });
+  const pct = max>0?Math.round(got/max*100):0;
+
+  // 退院先区分（在宅復帰率への影響）
+  const dst = state.dst;
+  if(dst==="maru") reasons.push({t:"good",msg:"想定退院先は自宅扱い（在宅復帰率に算入）"});
+  else if(dst==="shikaku") reasons.push({t:"caut",msg:"退院先が老健/長期療養型/回復期：在宅復帰率を下げる。地ケア会議で受入可否を確認"});
+  else if(dst==="mitei") reasons.push({t:"caut",msg:"退院先が未定：方向性を地ケア会議で確認"});
+
+  // 判定
+  const v=document.getElementById("verdict");
+  const big=document.getElementById("vbig");
+  const sub=document.getElementById("vsub");
+  const lbl=document.getElementById("vlabel");
+  const answeredAny = Object.keys(state).length>0;
+  document.getElementById("bar").style.width=pct+"%";
+  document.getElementById("barlabel").textContent = max>0?`評価スコア ${got}/${max}（${pct}%）`:"";
+
+  v.className="verdict";
+  if(!answeredAny){
+    v.classList.add("v-idle"); lbl.textContent="判定";
+    big.textContent="入力してください"; sub.textContent="";
+    setMbar("v-idle","入力してください","タップで詳細 ▲");
+    document.getElementById("reasons").innerHTML=""; return;
+  }
+  let cls,title,subtxt;
+  if(gateFail>0){
+    cls="v-ng"; title="転棟不可・時期尚早"; subtxt="必須条件（医学的安定性／地ケア会議・主治医〇）が未充足です";
+  } else if(gateUnanswered>0){
+    cls="v-warn"; title="判定保留"; subtxt="必須条件に未回答の項目があります";
+  } else if(pct>=80){
+    cls="v-ok"; title="転棟可と考えられる"; subtxt="必須条件を満たし、支援・算定面も良好";
+  } else if(pct>=55){
+    cls="v-warn"; title="条件付きで可（要カンファ）"; subtxt="必須条件は充足。下記の課題を確認の上で判断";
+  } else {
+    cls="v-warn"; title="要再検討"; subtxt="必須条件は充足するが、支援・算定面の課題が多い";
+  }
+  v.classList.add(cls); lbl.textContent="判定結果";
+  big.textContent=title; sub.textContent=subtxt;
+  setMbar(cls, title, max>0?`${pct}% ・タップで詳細 ▲`:"タップで詳細 ▲");
+
+  // 良好メッセージ
+  if(gateFail===0 && gateUnanswered===0){
+    reasons.unshift({t:"good",msg:"必須条件（医学的安定性・地ケア会議・主治医〇）を充足"});
+  }
+  const ul=document.getElementById("reasons");
+  ul.innerHTML="";
+  reasons.forEach(r=>{
+    const li=document.createElement("li"); li.className=r.t; li.textContent=r.msg; ul.appendChild(li);
+  });
+}
+function shorten(s){return s.length>34?s.slice(0,33)+"…":s;}
+function setMbar(cls,title,score){
+  const mb=document.getElementById("mbar");
+  mb.className="mbar "+cls+(document.getElementById("tab-tool").hidden?" mb-hide":"");
+  document.getElementById("mb-big").textContent=title;
+  document.getElementById("mb-score").textContent=score;
+}
+
+function resetAll(){
+  if(!confirm("入力内容をすべてクリアします。よろしいですか？"))return;
+  for(const k in state) delete state[k];
+  document.querySelectorAll('input[type=radio]').forEach(r=>r.checked=false);
+  ["pid","pname","memo"].forEach(id=>document.getElementById(id).value="");
+  evaluate();
+}
+
+// タブ切替
+function showTab(name){
+  ["tool","ref"].forEach(t=>{
+    document.getElementById("tab-"+t).hidden = (t!==name);
+    document.getElementById("tabbtn-"+t).classList.toggle("active", t===name);
+  });
+  document.getElementById("mbar").classList.toggle("mb-hide", name!=="tool");
+  window.scrollTo(0,0);
+}
+
+// 初期化
+render();
+document.getElementById("evdate").valueAsDate=new Date();
+evaluate();
+</script>
+</body>
+</html>
