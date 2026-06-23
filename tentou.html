@@ -204,7 +204,8 @@
 </noscript>
 <div class="tabs">
   <button id="tabbtn-tool" class="active" onclick="showTab('tool')">転棟判断</button>
-  <button id="tabbtn-ref" onclick="showTab('ref')">別紙：看護必要度C項目</button>
+  <button id="tabbtn-refA" onclick="showTab('refA')">別紙：A項目</button>
+  <button id="tabbtn-ref" onclick="showTab('ref')">別紙：C項目</button>
 </div>
 
 <div id="tab-tool" class="tabpane">
@@ -414,6 +415,65 @@
     §2の項目一覧は本資料に明記されたもの（★＝2026年追加）。完全な対象範囲は「レセプト電算処理システム用コード一覧（評価の手引き 令和8年度版）」が最終的な根拠です。算定の最終確認は診療報酬担当者が行ってください。
   </div>
 </div><!-- /#tab-ref -->
+
+<div id="tab-refA" class="tabpane refsheet" hidden>
+  <div style="text-align:right;margin-bottom:8px"><button class="b-print" style="padding:8px 16px;border-radius:7px" onclick="window.print()">この別紙を印刷 / PDF</button></div>
+  <div class="rhead">別紙｜看護必要度 A項目「モニタリング及び処置等」一覧</div>
+  <p class="subttl">木村病院 3F急性期病棟（急性期一般入院料4／2026改定後：急性期4）　／　2026年6月施行 診療報酬改定対応</p>
+
+  <h2>1. A項目の一覧と点数</h2>
+  <p class="note">A項目は「モニタリング及び処置等」を評価します。該当すると下表の点数が加算され、合計点が該当患者の判定（§3）に用いられます。<b>点数は令和8年度の評価票に準拠</b>。<span class="tag2">2026追加</span>＝今改定で新たに対象となった項目。</p>
+  <table>
+    <tr><th>No</th><th>A項目（モニタリング及び処置等）</th><th>点数</th><th>主な内容・例</th></tr>
+    <tr><td class="d">1</td><td>創傷処置</td><td class="d">1点</td><td>①創傷の処置（褥瘡の処置を除く）　②褥瘡の処置</td></tr>
+    <tr><td class="d">2</td><td>呼吸ケア（喀痰吸引のみを除く）</td><td class="d">1点</td><td>人工呼吸器・気管切開・酸素療法等の呼吸管理（喀痰吸引のみは対象外）</td></tr>
+    <tr><td class="d">3</td><td>注射薬剤3種類以上の管理</td><td class="d">1点</td><td>1日に注射薬剤を3種類以上使用・管理（算入は最大7日間）</td></tr>
+    <tr><td class="d">4</td><td>シリンジポンプの管理</td><td class="d">1点</td><td>シリンジポンプによる持続的な微量注入の管理</td></tr>
+    <tr><td class="d">5</td><td>輸血や血液製剤の管理</td><td class="d">2点</td><td>輸血・血液製剤の投与・管理</td></tr>
+    <tr><td class="d">6</td><td>専門的な治療・処置</td><td class="d">1〜2点</td><td>①〜⑪（詳細は §2）。項目により1点または2点</td></tr>
+    <tr><td class="d">7</td><td>一時的ペーシングの管理<span class="tag2">2026追加</span></td><td class="d">評価票</td><td>体外式ペースメーカーを使用・管理した場合</td></tr>
+    <tr><td class="d">8</td><td>蘇生術の施行<span class="tag2">2026追加</span></td><td class="d">評価票</td><td>心肺蘇生等の蘇生処置を実施した場合</td></tr>
+    <tr><td class="d">9</td><td>救急搬送後の入院／緊急に入院を必要とする状態</td><td class="d">2点</td><td>搬送当日を含む2日間（2024年改定で5日間→2日間に短縮、2026年も2日間）。ICU・救命救急センターを経由した場合は対象外</td></tr>
+  </table>
+  <p class="note">※点数・算入日数の最終的な根拠は厚労省「評価の手引き 令和8年度版」の評価票です。一時的ペーシング・蘇生術の配点は評価票でご確認ください。</p>
+
+  <h2>2. 「専門的な治療・処置」（①〜⑪）の内訳</h2>
+  <h3>2点の項目</h3>
+  <ul>
+    <li>抗悪性腫瘍剤の使用（注射剤のみ）<span class="tag2">対象薬剤2026追加</span>（ホリナートカルシウム・ラスブリカーゼ 等を追加）</li>
+    <li>麻薬の使用（注射剤のみ）</li>
+    <li>免疫抑制剤の管理（注射剤のみ）</li>
+    <li>無菌治療室での治療</li>
+  </ul>
+  <h3>1点の項目</h3>
+  <ul>
+    <li>抗悪性腫瘍剤の内服の管理</li>
+    <li>麻薬の内服・貼付・坐剤の管理</li>
+    <li>放射線治療</li>
+    <li>昇圧剤の使用（注射剤のみ）</li>
+    <li>抗不整脈剤の使用（注射剤のみ）<span class="tag2">2026追加</span></li>
+    <li>抗血栓塞栓薬の持続点滴の使用</li>
+    <li>ドレナージの管理</li>
+  </ul>
+  <p class="note">※1点／2点の区分は評価票に準拠。最新・正式な配点は「評価の手引き 令和8年度版」をご確認ください。</p>
+
+  <h2>3. 該当患者の判定とA項目（急性期一般入院料4）</h2>
+  <div class="box">
+    <b>経過措置中（〜2026年9月30日・旧評価票）：</b>次のいずれかで該当患者。<br>
+    ・A2点以上 かつ B3点以上　／　・A3点以上　／　・C1点以上
+  </div>
+  <div class="box ok">
+    <b>2026年10月1日〜（新評価票）：</b>急性期4の該当患者＝<b>「A3点以上 または C1点以上」</b>（割合1）。<br>
+    新評価票ではB項目は該当判定から外れ、B項目の測定頻度も緩和されます。
+  </div>
+  <p class="note">救急患者応需係数（当院は上限10%）は該当割合に加算されます（「別紙：C項目」§5参照）。自院の届出区分・移行時期に合わせて運用してください。</p>
+
+  <div class="foot">
+    【出典】厚生労働省「令和8年度診療報酬改定」一般病棟用の重症度、医療・看護必要度 評価票。A項目への追加（一時的ペーシング・抗不整脈剤〔注射〕・蘇生術・抗悪性腫瘍剤の対象薬剤）。<br>
+    【経過措置】2026年6月〜9月30日は旧評価票での評価が可能。2026年10月1日より新評価票へ完全移行。<br>
+    点数・対象の完全な定義は「評価の手引き 令和8年度版」が最終的な根拠です。算定の最終確認は診療報酬担当者が行ってください。
+  </div>
+</div><!-- /#tab-refA -->
 </div><!-- /.wrap -->
 <div id="mbar" class="mbar v-idle" onclick="document.getElementById('verdict').scrollIntoView({behavior:'smooth',block:'center'})">
   <span class="mb-big" id="mb-big">入力してください</span>
@@ -607,7 +667,7 @@ function resetAll(){
 
 // タブ切替
 function showTab(name){
-  ["tool","ref"].forEach(t=>{
+  ["tool","ref","refA"].forEach(t=>{
     document.getElementById("tab-"+t).hidden = (t!==name);
     document.getElementById("tabbtn-"+t).classList.toggle("active", t===name);
   });
