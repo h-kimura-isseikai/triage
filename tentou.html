@@ -214,8 +214,7 @@
   <div>
     <div class="card">
       <div class="meta">
-        <div><label>患者ID</label><input id="pid" type="text" placeholder="任意"></div>
-        <div><label>氏名</label><input id="pname" type="text" placeholder="任意"></div>
+        <div><label>患者イニシャル</label><input id="pinit" type="text" placeholder="例：A.B.（氏名は入力しない）"></div>
         <div><label>急性期 入院日</label><input id="addate" type="date"></div>
         <div><label>評価日</label><input id="evdate" type="date"></div>
       </div>
@@ -659,7 +658,7 @@ function resetAll(){
   if(!confirm("入力内容をすべてクリアします。よろしいですか？"))return;
   for(const k in state) delete state[k];
   document.querySelectorAll('input[type=radio]').forEach(r=>r.checked=false);
-  ["pid","pname","memo"].forEach(id=>document.getElementById(id).value="");
+  ["pinit","memo"].forEach(id=>document.getElementById(id).value="");
   evaluate();
 }
 
