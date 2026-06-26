@@ -114,6 +114,7 @@
   .btns{display:flex;gap:8px;margin-top:12px}
   button{flex:1;padding:10px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer}
   .b-print{background:var(--brand);color:#fff}
+  .b-save{background:var(--ok);color:#fff}
   .b-reset{background:#fff;border:1px solid var(--line);color:var(--sub)}
   .dsttbl{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
   @media(max-width:600px){.dsttbl{grid-template-columns:1fr}}
@@ -192,7 +193,7 @@
 <div class="wrap">
 <div class="proto">
   <b>試作版・評価用</b>　動作確認のための試作です。お気づきの点・改善のご意見は <b>院長のLINE WORKS</b> までお願いします。
-  <span class="proto-note">（入力内容は保存されません。院内のみで使用し、院外への共有は不可）</span>
+  <span class="proto-note">（サーバーには保存されません。振り返り用に残す場合は「保存」ボタンでCSVファイルに書き出してください。院内のみで使用し、院外への共有は不可）</span>
 </div>
 
 <noscript>
@@ -296,6 +297,7 @@
       <div class="score" id="barlabel" style="text-align:right;font-size:12px;color:var(--sub)"></div>
       <ul class="reasons" id="reasons"></ul>
       <div class="btns panel-actions">
+        <button class="b-save" onclick="saveRecord()">保存</button>
         <button class="b-print" onclick="window.print()">印刷 / PDF</button>
         <button class="b-reset" onclick="resetAll()">リセット</button>
       </div>
@@ -652,6 +654,38 @@ function setMbar(cls,title,score){
   mb.className="mbar "+cls+(document.getElementById("tab-tool").hidden?" mb-hide":"");
   document.getElementById("mb-big").textContent=title;
   document.getElementById("mb-score").textContent=score;
+}
+
+function ansLabel(v){return v==="y"?"はい":v==="n"?"いいえ":v==="na"?"該当なし":"未回答";}
+function dstLabel(v){return v==="maru"?"〇 自宅・自宅に準ずる":v==="shikaku"?"□ 老健・長期療養型・回復期":v==="mitei"?"未定・その他":"";}
+
+function saveRecord(){
+  const g=id=>{const e=document.getElementById(id);return e?e.value:"";};
+  const now=new Date();
+  const pad=n=>String(n).padStart(2,"0");
+  const stamp=`${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
+  const reasons=[...document.querySelectorAll("#reasons li")].map(li=>li.textContent.trim()).join(" / ");
+  const headers=["保存日時","患者イニシャル","評価日","急性期入院日","想定退院先","判定","補足","評価スコア"];
+  const row=[
+    now.toLocaleString("ja-JP"),
+    g("pinit"), g("evdate"), g("addate"),
+    dstLabel(state.dst),
+    document.getElementById("vbig").textContent.trim(),
+    document.getElementById("vsub").textContent.trim(),
+    document.getElementById("barlabel").textContent.trim()
+  ];
+  SECTIONS.forEach(sec=>sec.items.forEach(it=>{ headers.push(it.q); row.push(ansLabel(state[it.id])); }));
+  headers.push("課題・理由（自動）"); row.push(reasons);
+  headers.push("メモ"); row.push(g("memo"));
+  const esc=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
+  const csv="﻿"+headers.map(esc).join(",")+"\r\n"+row.map(esc).join(",")+"\r\n";
+  const initial=(g("pinit").trim()||"無記名").replace(/[\\/:*?"<>|\s]/g,"_");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download=`転棟判断_${initial}_${stamp}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
 function resetAll(){
