@@ -116,6 +116,11 @@
   .b-print{background:var(--brand);color:#fff}
   .b-save{background:var(--ok);color:#fff}
   .b-reset{background:#fff;border:1px solid var(--line);color:var(--sub)}
+  .logbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .logcount{font-size:12px;color:var(--sub);font-weight:700}
+  .logacts{display:flex;gap:6px}
+  .b-export{background:var(--brand-d);color:#fff;padding:7px 11px;border-radius:7px;font-size:12px;flex:none}
+  .b-clear{background:#fff;border:1px solid var(--line);color:var(--ng);padding:7px 11px;border-radius:7px;font-size:12px;flex:none}
   .dsttbl{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
   @media(max-width:600px){.dsttbl{grid-template-columns:1fr}}
   .dstcol{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
@@ -193,7 +198,7 @@
 <div class="wrap">
 <div class="proto">
   <b>試作版・評価用</b>　動作確認のための試作です。お気づきの点・改善のご意見は <b>院長のLINE WORKS</b> までお願いします。
-  <span class="proto-note">（サーバーには保存されません。振り返り用に残す場合は「保存」ボタンでCSVファイルに書き出してください。院内のみで使用し、院外への共有は不可）</span>
+  <span class="proto-note">（サーバーには保存されません。「保存」を押すとこの端末に記録がたまり、「CSV書き出し（全件）」で1ファイルにまとめて出力できます。<b>共有端末では他の人も閲覧・書き出し可能</b>。書き出し後は「履歴消去」を推奨。院内のみで使用し、院外への共有は不可）</span>
 </div>
 
 <noscript>
@@ -297,9 +302,16 @@
       <div class="score" id="barlabel" style="text-align:right;font-size:12px;color:var(--sub)"></div>
       <ul class="reasons" id="reasons"></ul>
       <div class="btns panel-actions">
-        <button class="b-save" onclick="saveRecord()">保存</button>
+        <button class="b-save" onclick="appendRecord()">保存（端末に追記）</button>
         <button class="b-print" onclick="window.print()">印刷 / PDF</button>
         <button class="b-reset" onclick="resetAll()">リセット</button>
+      </div>
+      <div class="logbar panel-actions">
+        <span id="logmsg" class="logcount">この端末に保存：0件</span>
+        <span class="logacts">
+          <button class="b-export" onclick="exportAllCSV()">CSV書き出し（全件）</button>
+          <button class="b-clear" onclick="clearLog()">履歴消去</button>
+        </span>
       </div>
       <p class="disc">
         本ツールは多職種での申し送り・カンファレンス支援を目的とした参考スクリーニングです。
@@ -661,33 +673,60 @@ function setMbar(cls,title,score){
 function ansLabel(v){return v==="y"?"はい":v==="n"?"いいえ":v==="na"?"該当なし":"未回答";}
 function dstLabel(v){return v==="maru"?"〇 自宅・自宅に準ずる":v==="shikaku"?"□ 老健・長期療養型・回復期":v==="mitei"?"未定・その他":"";}
 
-function saveRecord(){
+// ===== 複数ケースをこの端末（ブラウザ）にためて、まとめてCSV書き出し =====
+const LOGKEY="tentouLog_v1";
+function getLog(){try{return JSON.parse(localStorage.getItem(LOGKEY)||"[]");}catch(e){return [];}}
+function setLog(a){try{localStorage.setItem(LOGKEY,JSON.stringify(a));return true;}catch(e){alert("端末の保存容量が不足しています。『CSV書き出し』で保存してから『履歴消去』してください。");return false;}}
+function buildRecord(){
   const g=id=>{const e=document.getElementById(id);return e?e.value:"";};
-  const now=new Date();
-  const pad=n=>String(n).padStart(2,"0");
-  const stamp=`${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
-  const reasons=[...document.querySelectorAll("#reasons li")].map(li=>li.textContent.trim()).join(" / ");
-  const headers=["保存日時","患者イニシャル","評価日","急性期入院日","想定退院先","判定","補足","評価スコア"];
-  const row=[
-    now.toLocaleString("ja-JP"),
-    g("pinit"), g("evdate"), g("addate"),
-    dstLabel(state.dst),
-    document.getElementById("vbig").textContent.trim(),
-    document.getElementById("vsub").textContent.trim(),
-    document.getElementById("barlabel").textContent.trim()
-  ];
-  SECTIONS.forEach(sec=>sec.items.forEach(it=>{ headers.push(it.q); row.push(ansLabel(state[it.id])); }));
-  headers.push("課題・理由（自動）"); row.push(reasons);
-  headers.push("メモ"); row.push(g("memo"));
+  const rec={};
+  rec["保存日時"]=new Date().toLocaleString("ja-JP");
+  rec["患者イニシャル"]=g("pinit");
+  rec["評価日"]=g("evdate");
+  rec["急性期入院日"]=g("addate");
+  rec["想定退院先"]=dstLabel(state.dst);
+  rec["判定"]=document.getElementById("vbig").textContent.trim();
+  rec["補足"]=document.getElementById("vsub").textContent.trim();
+  rec["評価スコア"]=document.getElementById("barlabel").textContent.trim();
+  SECTIONS.forEach(sec=>sec.items.forEach(it=>{ rec[it.q]=ansLabel(state[it.id]); }));
+  rec["課題・理由（自動）"]=[...document.querySelectorAll("#reasons li")].map(li=>li.textContent.trim()).join(" / ");
+  rec["メモ"]=g("memo");
+  return rec;
+}
+function updateLogCount(msg){
+  const el=document.getElementById("logmsg");
+  if(el) el.textContent = msg ? msg : ("この端末に保存：" + getLog().length + "件");
+}
+function appendRecord(){
+  const log=getLog();
+  log.push(buildRecord());
+  if(setLog(log)){
+    updateLogCount("✓ 保存しました（計"+log.length+"件）");
+    setTimeout(()=>updateLogCount(),2500);
+  }
+}
+function exportAllCSV(){
+  const log=getLog();
+  if(log.length===0){alert("保存された記録がありません。先に「保存」を押してください。");return;}
+  const headers=[]; log.forEach(r=>Object.keys(r).forEach(k=>{if(!headers.includes(k))headers.push(k);}));
   const esc=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
-  const csv="﻿"+headers.map(esc).join(",")+"\r\n"+row.map(esc).join(",")+"\r\n";
-  const initial=(g("pinit").trim()||"無記名").replace(/[\\/:*?"<>|\s]/g,"_");
+  let csv="﻿"+headers.map(esc).join(",")+"\r\n";
+  log.forEach(r=>{ csv+=headers.map(h=>esc(r[h]!=null?r[h]:"")).join(",")+"\r\n"; });
+  const now=new Date(); const pad=n=>String(n).padStart(2,"0");
+  const stamp=`${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`;
   const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
   const url=URL.createObjectURL(blob);
   const a=document.createElement("a");
-  a.href=url; a.download=`転棟判断_${initial}_${stamp}.csv`;
+  a.href=url; a.download=`転棟判断_全${log.length}件_${stamp}.csv`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function clearLog(){
+  const n=getLog().length;
+  if(n===0){alert("保存された記録はありません。");return;}
+  if(!confirm("この端末に保存した"+n+"件の記録をすべて消去します。よろしいですか？（CSV書き出し済みかご確認ください）"))return;
+  localStorage.removeItem(LOGKEY);
+  updateLogCount();
 }
 
 function resetAll(){
@@ -712,6 +751,7 @@ function showTab(name){
 render();
 document.getElementById("evdate").valueAsDate=new Date();
 evaluate();
+updateLogCount();
 </script>
 </body>
 </html>
